@@ -1,5 +1,13 @@
 {
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/.next",
-  "framework": "nextjs"
+  "routes": [
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "frontend/$1"
+    }
+  ]
 }
