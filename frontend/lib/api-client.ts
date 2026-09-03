@@ -176,19 +176,40 @@ export const api = {
     try {
       return await fetchAPI<any>('/ai/parse-model', { method: 'POST', body: JSON.stringify({ description }) });
     } catch {
-      // Local natural language extraction fallback
+      // Intelligent natural language extraction fallback
+      const textLower = description.toLowerCase();
+      const mentionsCAC = textLower.includes("acquire") || textLower.includes("acquisition") || textLower.includes("cac");
+
+      const cacMatch = description.match(/(?:acquire|acquisition|cac)[^\d]*([\d,]+)/i);
+      const cacVal = cacMatch ? parseFloat(cacMatch[1].replace(/,/g, '')) : 1000;
+
+      const variables: any[] = [
+        { variable_name: "customers_per_month", display_name: "Customers per Month", category: "revenue", value: 600, unit: "customers/month", period: "month", currency: "NGN", source: "ai_extracted" },
+        { variable_name: "average_order_value", display_name: "Average Order Value", category: "revenue", value: 2500, unit: "NGN/order", period: "order", currency: "NGN", source: "ai_extracted" },
+        { variable_name: "inventory_cost", display_name: "food/materials", category: "expense", value: 500000, unit: "NGN/month", period: "month", currency: "NGN", source: "ai_extracted" },
+        { variable_name: "salary_cost", display_name: "salaries/wages", category: "expense", value: 250000, unit: "NGN/month", period: "month", currency: "NGN", source: "ai_extracted" },
+        { variable_name: "rent", display_name: "building rent", category: "expense", value: 100000, unit: "NGN/month", period: "month", currency: "NGN", source: "ai_extracted" },
+        { variable_name: "utilities", display_name: "electricity & water", category: "expense", value: 50000, unit: "NGN/month", period: "month", currency: "NGN", source: "ai_extracted" },
+        { variable_name: "marketing", display_name: "advertising", category: "expense", value: 100000, unit: "NGN/month", period: "month", currency: "NGN", source: "ai_extracted" },
+      ];
+
+      if (mentionsCAC) {
+        variables.push({
+          variable_name: "customer_acquisition_cost",
+          display_name: "Customer Acquisition Cost",
+          category: "expense",
+          value: cacVal,
+          unit: "NGN/customer",
+          period: "one-time",
+          currency: "NGN",
+          source: "ai_extracted"
+        });
+      }
+
       return {
         business_type: "restaurant",
-        extracted_variables: [
-          { variable_name: "customers_per_month", display_name: "Customers per Month", category: "revenue", value: 600, unit: "customers/month", period: "month", currency: "NGN", source: "ai_extracted" },
-          { variable_name: "average_order_value", display_name: "Average Order Value", category: "revenue", value: 2500, unit: "NGN/order", period: "order", currency: "NGN", source: "ai_extracted" },
-          { variable_name: "inventory_cost", display_name: "food/materials", category: "expense", value: 500000, unit: "NGN/month", period: "month", currency: "NGN", source: "ai_extracted" },
-          { variable_name: "salary_cost", display_name: "salaries/wages", category: "expense", value: 250000, unit: "NGN/month", period: "month", currency: "NGN", source: "ai_extracted" },
-          { variable_name: "rent", display_name: "building rent", category: "expense", value: 100000, unit: "NGN/month", period: "month", currency: "NGN", source: "ai_extracted" },
-          { variable_name: "utilities", display_name: "electricity & water", category: "expense", value: 50000, unit: "NGN/month", period: "month", currency: "NGN", source: "ai_extracted" },
-          { variable_name: "marketing", display_name: "advertising", category: "expense", value: 100000, unit: "NGN/month", period: "month", currency: "NGN", source: "ai_extracted" },
-        ],
-        missing_variables: ["customer_acquisition_cost"],
+        extracted_variables: variables,
+        missing_variables: mentionsCAC ? [] : ["customer_acquisition_cost"],
         assumptions: ["Monthly recurring timeframe"]
       };
     }
