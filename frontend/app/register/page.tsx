@@ -13,6 +13,7 @@ export default function RegisterPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    localStorage.setItem("scenariox_user_email", email);
     localStorage.setItem("scenariox_auth_token", "dev-token-00000000-0000-0000-0000-000000000001");
     router.push("/dashboard");
   };

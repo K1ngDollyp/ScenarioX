@@ -7,12 +7,13 @@ import { ShieldCheck, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("demo@scenariox.ai");
+  const [email, setEmail] = useState("ifedolaposojobi@gmail.com");
   const [password, setPassword] = useState("password123");
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    localStorage.setItem("scenariox_user_email", email);
     localStorage.setItem("scenariox_auth_token", "dev-token-00000000-0000-0000-0000-000000000001");
     router.push("/dashboard");
   };
