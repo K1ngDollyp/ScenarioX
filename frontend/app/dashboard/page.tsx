@@ -1,9 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { Building2, GitFork, PlaySquare, Sparkles, TrendingUp, ArrowUpRight, CheckCircle2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { api } from "@/lib/api-client";
+import { Building2, GitFork, PlaySquare, Sparkles, TrendingUp, ArrowUpRight, CheckCircle2, Plus } from "lucide-react";
 
 export default function DashboardPage() {
+  const [models, setModels] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getModels()
+      .then((data) => setModels(data))
+      .catch(() => setModels([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const activeModel = models[0];
+
   return (
     <div className="space-y-8">
       {/* Header Banner */}
@@ -37,8 +51,8 @@ export default function DashboardPage() {
               <Building2 className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-extrabold text-white">1 Model</p>
-          <p className="text-xs text-slate-500 mt-1">Restaurant Financial Baseline</p>
+          <p className="text-2xl font-extrabold text-white">{models.length} {models.length === 1 ? 'Model' : 'Models'}</p>
+          <p className="text-xs text-slate-500 mt-1">{activeModel ? activeModel.name : "No active models created"}</p>
         </div>
 
         <div className="glass-panel p-5 glow-hover">
@@ -48,8 +62,8 @@ export default function DashboardPage() {
               <GitFork className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-extrabold text-white">4 Scenarios</p>
-          <p className="text-xs text-slate-500 mt-1">Price raise, Marketing, Cost reduction</p>
+          <p className="text-2xl font-extrabold text-white">{models.length > 0 ? '1 Scenario' : '0 Scenarios'}</p>
+          <p className="text-xs text-slate-500 mt-1">Price raise & elasticity</p>
         </div>
 
         <div className="glass-panel p-5 glow-hover">
@@ -59,7 +73,7 @@ export default function DashboardPage() {
               <PlaySquare className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-extrabold text-white">1,000 Runs</p>
+          <p className="text-2xl font-extrabold text-white">{models.length > 0 ? '1 Run' : '0 Runs'}</p>
           <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
             <CheckCircle2 className="w-3.5 h-3.5" /> Immutable Snapshots
           </p>
@@ -72,8 +86,8 @@ export default function DashboardPage() {
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-extrabold text-emerald-400">₦584,000</p>
-          <p className="text-xs text-emerald-400 mt-1">+16.8% vs Baseline (+₦84k)</p>
+          <p className="text-2xl font-extrabold text-emerald-400">{models.length > 0 ? '₦584,000' : '₦0'}</p>
+          <p className="text-xs text-emerald-400 mt-1">{models.length > 0 ? '+16.8% vs Baseline (+₦84k)' : 'No simulation run'}</p>
         </div>
       </div>
 
@@ -82,31 +96,50 @@ export default function DashboardPage() {
         {/* Model Card */}
         <div className="glass-panel p-6 lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-base text-white">Active Restaurant Model</h3>
+            <h3 className="font-bold text-base text-white">
+              {activeModel ? activeModel.name : "Get Started with Your First Model"}
+            </h3>
             <Link href="/dashboard/models/create" className="text-xs text-brand-400 hover:underline">
-              Edit Variables
+              {activeModel ? "Edit Variables" : "+ Manual Model"}
             </Link>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-4 pt-2">
-            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800">
-              <span className="text-xs text-slate-400">Baseline Customers</span>
-              <p className="text-xl font-bold text-white mt-1">600 / month</p>
-              <span className="text-xs text-slate-500">Unit: customers/month</span>
-            </div>
+          {activeModel ? (
+            <div className="grid sm:grid-cols-3 gap-4 pt-2">
+              <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800">
+                <span className="text-xs text-slate-400">Configured Variables</span>
+                <p className="text-xl font-bold text-white mt-1">{activeModel.variables?.length || 0} variables</p>
+                <span className="text-xs text-slate-500">Explicit Metadata</span>
+              </div>
 
-            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800">
-              <span className="text-xs text-slate-400">Avg Order Value</span>
-              <p className="text-xl font-bold text-white mt-1">₦2,500</p>
-              <span className="text-xs text-slate-500">Unit: NGN/order</span>
-            </div>
+              <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800">
+                <span className="text-xs text-slate-400">Currency</span>
+                <p className="text-xl font-bold text-white mt-1">{activeModel.currency || "NGN"}</p>
+                <span className="text-xs text-slate-500">Base Currency</span>
+              </div>
 
-            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800">
-              <span className="text-xs text-slate-400">Operating Expenses</span>
-              <p className="text-xl font-bold text-white mt-1">₦1,000,000</p>
-              <span className="text-xs text-slate-500">Inventory + Salary + Rent</span>
+              <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800">
+                <span className="text-xs text-slate-400">Business Type</span>
+                <p className="text-xl font-bold text-white mt-1 uppercase">{activeModel.business_type || "RESTAURANT"}</p>
+                <span className="text-xs text-slate-500">Domain Baseline</span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="p-6 rounded-xl bg-slate-950/60 border border-dashed border-slate-800 text-center space-y-3">
+              <p className="text-slate-400 text-xs">
+                You don't have any active business models yet. Describe your business in plain English or enter variables manually.
+              </p>
+              <div className="flex justify-center gap-3">
+                <Link
+                  href="/dashboard/models/create-ai"
+                  className="py-2 px-4 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs flex items-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Create via AI Assistant</span>
+                </Link>
+              </div>
+            </div>
+          )}
 
           <div className="pt-2 flex flex-wrap gap-3">
             <Link

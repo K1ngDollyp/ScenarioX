@@ -10,28 +10,9 @@ export default function BusinessModelsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Default seed model for immediate demonstration
-    const seedModel = {
-      id: "seed-restaurant-001",
-      name: "Standard Restaurant Baseline",
-      business_type: "restaurant",
-      currency: "NGN",
-      description: "600 customers/month @ ₦2,500 avg order, ₦1.0M expenses.",
-      created_at: new Date().toISOString(),
-      variables: [
-        { variable_name: "customers_per_month", display_name: "Customers", value: 600, unit: "customers/month" },
-        { variable_name: "average_order_value", display_name: "Avg Order Value", value: 2500, unit: "NGN/order" },
-        { variable_name: "inventory_cost", display_name: "Inventory Cost", value: 500000, unit: "NGN/month" },
-        { variable_name: "salary_cost", display_name: "Salary Cost", value: 250000, unit: "NGN/month" },
-        { variable_name: "rent", display_name: "Rent", value: 100000, unit: "NGN/month" },
-        { variable_name: "utilities", display_name: "Utilities", value: 50000, unit: "NGN/month" },
-        { variable_name: "marketing", display_name: "Marketing", value: 100000, unit: "NGN/month" },
-      ]
-    };
-
     api.getModels()
-      .then((data) => setModels(data.length > 0 ? data : [seedModel]))
-      .catch(() => setModels([seedModel]))
+      .then((data) => setModels(data))
+      .catch(() => setModels([]))
       .finally(() => setLoading(false));
   }, []);
 
@@ -63,6 +44,27 @@ export default function BusinessModelsPage() {
 
       {loading ? (
         <div className="glass-panel p-8 text-center text-slate-500 text-sm">Loading business models...</div>
+      ) : models.length === 0 ? (
+        <div className="glass-panel p-12 text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-brand-500/10 text-brand-400 flex items-center justify-center mx-auto">
+            <Building2 className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-white">No Business Models Created Yet</h3>
+            <p className="text-slate-400 text-xs mt-1 max-w-md mx-auto">
+              You haven't created any business models. Describe your business in plain English using the AI Assistant or build one manually.
+            </p>
+          </div>
+          <div className="flex justify-center gap-3 pt-2">
+            <Link
+              href="/dashboard/models/create-ai"
+              className="py-2.5 px-5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition shadow-lg shadow-brand-600/20 flex items-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Create Model via AI</span>
+            </Link>
+          </div>
+        </div>
       ) : (
         <div className="grid md:grid-cols-2 gap-6">
           {models.map((model) => (
@@ -79,7 +81,7 @@ export default function BusinessModelsPage() {
               </div>
 
               <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
-                <span className="text-xs text-slate-500">{model.variables.length} Variables Configured</span>
+                <span className="text-xs text-slate-500">{model.variables?.length || 0} Variables Configured</span>
                 <Link
                   href={`/dashboard/models/${model.id}`}
                   className="text-xs font-semibold text-brand-400 hover:text-brand-300 flex items-center gap-1"
