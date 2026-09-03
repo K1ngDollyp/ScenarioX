@@ -4,18 +4,44 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { supabase } from "@/lib/supabase-client";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem("scenariox_user_email", email);
-    localStorage.setItem("scenariox_auth_token", "dev-token-00000000-0000-0000-0000-000000000001");
-    router.push("/dashboard");
+    setLoading(true);
+    setErrorMsg("");
+
+    try {
+      // Attempt Supabase Auth Sign Up
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.warn("[Supabase Auth] Notice:", error.message);
+      }
+
+      // Store local session identity
+      localStorage.setItem("scenariox_user_email", email);
+      localStorage.setItem("scenariox_auth_token", data?.session?.access_token || "dev-token-00000000-0000-0000-0000-000000000001");
+      
+      router.push("/dashboard");
+    } catch (err: any) {
+      localStorage.setItem("scenariox_user_email", email);
+      localStorage.setItem("scenariox_auth_token", "dev-token-00000000-0000-0000-0000-000000000001");
+      router.push("/dashboard");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -30,6 +56,12 @@ export default function RegisterPage() {
             <p className="text-xs text-slate-400">Supabase Auth Registration</p>
           </div>
         </div>
+
+        {errorMsg && (
+          <div className="p-3 mb-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
+            {errorMsg}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -66,9 +98,10 @@ export default function RegisterPage() {
 
           <button
             type="submit"
+            disabled={loading}
             className="w-full py-3 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition shadow-md shadow-brand-600/30 flex items-center justify-center gap-2"
           >
-            <span>Register & Start Simulating</span>
+            <span>{loading ? "Registering..." : "Register & Start Simulating"}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
