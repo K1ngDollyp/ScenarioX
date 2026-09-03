@@ -8,5 +8,23 @@
       "root": "backend",
       "framework": "fastapi"
     }
-  }
+  },
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/backend/api/$1"
+    },
+    {
+      "src": "/docs",
+      "dest": "/backend/docs"
+    },
+    {
+      "src": "/health",
+      "dest": "/backend/health"
+    },
+    {
+      "src": "/openapi.json",
+      "dest": "/backend/openapi.json"
+    }
+  ]
 }
