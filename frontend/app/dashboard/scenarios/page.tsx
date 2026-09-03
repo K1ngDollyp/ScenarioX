@@ -1,19 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api-client";
-import { GitFork, Plus, PlaySquare, ArrowRight, Check } from "lucide-react";
+import { GitFork, Plus, PlaySquare, Building2 } from "lucide-react";
 
 export default function ScenarioBuilderPage() {
   const router = useRouter();
+  const [models, setModels] = useState<any[]>([]);
+  const [selectedModelId, setSelectedModelId] = useState<string>("");
   const [name, setName] = useState("10% Price Increase + Elasticity");
-  const [description, setDescription] = useState("Test raising restaurant menu prices by 10% assuming -0.4 elasticity.");
+  const [description, setDescription] = useState("Test raising prices by 10% assuming demand elasticity.");
   const [changes, setChanges] = useState<any[]>([
     { variable_name: "price_change", change_type: "percentage", change_value: 10.0 }
   ]);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    async function loadModels() {
+      const activeModels = await api.getModels();
+      setModels(activeModels);
+      if (activeModels.length > 0) {
+        setSelectedModelId(activeModels[0].id);
+      }
+    }
+    loadModels();
+  }, []);
 
   const handleAddChange = () => {
     setChanges([
@@ -25,8 +38,8 @@ export default function ScenarioBuilderPage() {
   const handleCreateScenario = async () => {
     setSaving(true);
     try {
-      // Create scenario under seed model
-      await api.createScenario("seed-restaurant-001", {
+      const targetModelId = selectedModelId || (models[0] ? models[0].id : "seed-restaurant-001");
+      await api.createScenario(targetModelId, {
         name,
         description,
         changes
@@ -47,6 +60,27 @@ export default function ScenarioBuilderPage() {
       </div>
 
       <div className="glass-panel p-6 space-y-6">
+        {/* Model Selector */}
+        {models.length > 0 && (
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5 text-brand-400" />
+              <span>Target Business Model</span>
+            </label>
+            <select
+              value={selectedModelId}
+              onChange={(e) => setSelectedModelId(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-lg bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-brand-500"
+            >
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name} ({m.business_type})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1">Scenario Title</label>
@@ -54,7 +88,7 @@ export default function ScenarioBuilderPage() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white text-sm"
+              className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-brand-500"
             />
           </div>
           <div>
@@ -63,7 +97,7 @@ export default function ScenarioBuilderPage() {
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white text-sm"
+              className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-brand-500"
             />
           </div>
         </div>
@@ -137,10 +171,10 @@ export default function ScenarioBuilderPage() {
           <button
             onClick={handleCreateScenario}
             disabled={saving}
-            className="py-2.5 px-6 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition flex items-center gap-2"
+            className="py-2.5 px-6 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition flex items-center gap-2 shadow-md"
           >
             <GitFork className="w-4 h-4" />
-            <span>Save Scenario & Prepare Simulation</span>
+            <span>{saving ? "Saving..." : "Save Scenario & Prepare Simulation"}</span>
           </button>
         </div>
       </div>
