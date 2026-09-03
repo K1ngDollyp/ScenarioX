@@ -1,14 +1,8 @@
 {
-  "services": {
-    "frontend": {
-      "root": "frontend",
-      "framework": "nextjs"
-    }
-  },
-  "rewrites": [
+  "builds": [
     {
-      "source": "/(.*)",
-      "destination": "/frontend/$1"
+      "src": "frontend/next.config.js",
+      "use": "@vercel/next"
     }
   ]
 }
