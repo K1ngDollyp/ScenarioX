@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { Bell, ShieldCheck, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Bell, ShieldCheck, ChevronRight, LogOut } from "lucide-react";
 
 export function Header({ title = "Dashboard" }: { title?: string }) {
+  const router = useRouter();
   const [userEmail, setUserEmail] = useState("ifedolaposojobi@gmail.com");
 
   useEffect(() => {
@@ -13,6 +15,12 @@ export function Header({ title = "Dashboard" }: { title?: string }) {
       setUserEmail(stored);
     }
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("scenariox_auth_token");
+    localStorage.removeItem("scenariox_user_email");
+    router.push("/login");
+  };
 
   const initials = userEmail
     ? userEmail.substring(0, 2).toUpperCase()
@@ -44,6 +52,13 @@ export function Header({ title = "Dashboard" }: { title?: string }) {
             <p className="font-medium text-slate-200">Authenticated User</p>
             <p className="text-slate-400 font-mono">{userEmail}</p>
           </div>
+          <button
+            onClick={handleLogout}
+            title="Log Out"
+            className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition ml-1"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </header>

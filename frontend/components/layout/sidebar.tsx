@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Building2,
@@ -14,10 +14,18 @@ import {
   Settings,
   Sparkles,
   Zap,
+  LogOut,
 } from "lucide-react";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    localStorage.removeItem("scenariox_auth_token");
+    localStorage.removeItem("scenariox_user_email");
+    router.push("/login");
+  };
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -79,7 +87,15 @@ export function Sidebar() {
       </div>
 
       {/* Footer Banner */}
-      <div className="p-4 border-t border-slate-800/80">
+      <div className="p-4 border-t border-slate-800/80 space-y-3">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-slate-950 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/30 text-slate-400 hover:text-rose-400 text-xs font-semibold transition"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          <span>Sign Out</span>
+        </button>
+
         <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800 text-xs">
           <p className="text-slate-300 font-semibold mb-1">Strict Mathematical Core</p>
           <p className="text-slate-500 leading-relaxed">The AI interprets. The mathematics calculates.</p>
