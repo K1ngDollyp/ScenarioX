@@ -1,34 +1,10 @@
 {
   "services": {
     "frontend": {
-      "root": "frontend",
-      "framework": "nextjs"
+      "root": "frontend"
     },
     "backend": {
-      "root": "backend",
-      "framework": "fastapi"
+      "root": "backend"
     }
-  },
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/backend/api/$1"
-    },
-    {
-      "src": "/docs",
-      "dest": "/backend/docs"
-    },
-    {
-      "src": "/health",
-      "dest": "/backend/health"
-    },
-    {
-      "src": "/openapi.json",
-      "dest": "/backend/openapi.json"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/frontend/$1"
-    }
-  ]
+  }
 }
