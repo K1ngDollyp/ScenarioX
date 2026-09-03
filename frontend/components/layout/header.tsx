@@ -29,7 +29,7 @@ export function Header({ title = "Dashboard" }: { title?: string }) {
       <div className="flex items-center gap-4">
         <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
           <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Supabase Auth & RLS Active</span>
+          <span>Secure Session Active</span>
         </div>
 
         <button className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">

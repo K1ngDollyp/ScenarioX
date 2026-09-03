@@ -28,11 +28,12 @@ async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise
   }
 }
 
-// In-memory / localStorage fallback repository
+// User-scoped localStorage repository (strict account data isolation)
 function getStoredModels(): any[] {
   if (typeof window === 'undefined') return [];
   try {
-    const data = localStorage.getItem('scenariox_user_models');
+    const email = localStorage.getItem('scenariox_user_email') || 'default';
+    const data = localStorage.getItem(`scenariox_user_models_${email}`);
     return data ? JSON.parse(data) : [];
   } catch {
     return [];
@@ -42,7 +43,8 @@ function getStoredModels(): any[] {
 function saveStoredModels(models: any[]): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem('scenariox_user_models', JSON.stringify(models));
+    const email = localStorage.getItem('scenariox_user_email') || 'default';
+    localStorage.setItem(`scenariox_user_models_${email}`, JSON.stringify(models));
   } catch {}
 }
 
