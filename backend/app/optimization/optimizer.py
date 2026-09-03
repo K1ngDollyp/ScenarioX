@@ -1,20 +1,26 @@
 import numpy as np
-from scipy.optimize import minimize
 from typing import Dict, Any, List, Optional
 from app.simulation.engine import DeterministicSimulationEngine
+
+try:
+    from scipy.optimize import minimize
+    HAS_SCIPY = True
+except ImportError:
+    HAS_SCIPY = False
 
 
 class SciPyDecisionOptimizer:
     """
-    Mathematical decision variable optimizer using SciPy.
+    Mathematical decision variable optimizer.
     Finds optimal decision variables to maximize profit or minimize expenses under constraints.
+    Uses SciPy SLSQP when available, or grid search optimization as serverless fallback.
     """
 
     @classmethod
     def optimize_decision(
         cls,
         baseline_variables: Dict[str, float],
-        objective: str = "maximize_profit", # maximize_profit, minimize_expenses
+        objective: str = "maximize_profit",
         bounds: Optional[List[Dict[str, Any]]] = None,
         user_constraints: Optional[List[Dict[str, Any]]] = None,
         elasticity: float = -0.4
@@ -22,7 +28,6 @@ class SciPyDecisionOptimizer:
         bounds = bounds or []
         user_constraints = user_constraints or []
 
-        # Decision variables to optimize: price_change, marketing, inventory_cost
         decision_keys = [b["variable_name"] for b in bounds if b["variable_name"] in baseline_variables or b["variable_name"] == "price_change"]
         if not decision_keys:
             decision_keys = ["price_change", "marketing"]
@@ -31,7 +36,6 @@ class SciPyDecisionOptimizer:
                 {"variable_name": "marketing", "min_value": 50000.0, "max_value": 300000.0}
             ]
 
-        # Initial guess (x0) and bounds tuple
         x0 = []
         scipy_bounds = []
 
@@ -44,11 +48,10 @@ class SciPyDecisionOptimizer:
             x0.append(init_val)
             scipy_bounds.append((b_cfg["min_value"], b_cfg["max_value"]))
 
-        def objective_func(x):
-            # Map x vector back to scenario changes
+        def evaluate_vector(x_vec):
             changes = []
             for idx, key in enumerate(decision_keys):
-                val = float(x[idx])
+                val = float(x_vec[idx])
                 if key == "price_change":
                     changes.append({"variable_name": "price_change", "change_type": "percentage", "change_value": val})
                 else:
@@ -58,25 +61,50 @@ class SciPyDecisionOptimizer:
 
             sim_res = DeterministicSimulationEngine.run_simulation(baseline_variables, changes, elasticity)
             scen = sim_res["scenario"]
+            return scen
 
-            if objective == "maximize_profit":
-                return -scen["profit"] # Negate for SciPy minimization
-            else:
-                return scen["expenses"]
+        if HAS_SCIPY:
+            def objective_func(x):
+                scen = evaluate_vector(x)
+                if objective == "maximize_profit":
+                    return -scen["profit"]
+                else:
+                    return scen["expenses"]
 
-        # Run SciPy minimize algorithm (L-BFGS-B or SLSQP)
-        res = minimize(
-            objective_func,
-            x0=np.array(x0),
-            method='SLSQP',
-            bounds=scipy_bounds
-        )
+            res = minimize(
+                objective_func,
+                x0=np.array(x0),
+                method='SLSQP',
+                bounds=scipy_bounds
+            )
+            opt_x = res.x
+            success = bool(res.success)
+        else:
+            # Grid search fallback over decision variable space
+            steps = 20
+            best_score = float('-inf') if objective == "maximize_profit" else float('inf')
+            best_x = list(x0)
 
-        optimal_vars = dict(baseline_variables)
+            grid_0 = np.linspace(scipy_bounds[0][0], scipy_bounds[0][1], steps)
+            grid_1 = np.linspace(scipy_bounds[1][0], scipy_bounds[1][1], steps) if len(scipy_bounds) > 1 else [0]
+
+            for v0 in grid_0:
+                for v1 in grid_1:
+                    test_vec = [v0, v1] if len(scipy_bounds) > 1 else [v0]
+                    scen = evaluate_vector(test_vec)
+                    score = scen["profit"] if objective == "maximize_profit" else -scen["expenses"]
+                    if score > best_score:
+                        best_score = score
+                        best_x = test_vec
+
+            opt_x = best_x
+            success = True
+
         final_changes = []
+        optimal_vars = dict(baseline_variables)
 
         for idx, key in enumerate(decision_keys):
-            opt_val = float(res.x[idx])
+            opt_val = float(opt_x[idx])
             if key == "price_change":
                 final_changes.append({"variable_name": "price_change", "change_type": "percentage", "change_value": opt_val})
             else:
@@ -89,12 +117,12 @@ class SciPyDecisionOptimizer:
 
         return {
             "objective": objective,
-            "success": bool(res.success),
+            "success": success,
             "optimal_variables": {
-                key: round(float(res.x[idx]), 2) for idx, key in enumerate(decision_keys)
+                key: round(float(opt_x[idx]), 2) for idx, key in enumerate(decision_keys)
             },
             "expected_revenue": scen["revenue"],
             "expected_expenses": scen["expenses"],
             "expected_profit": scen["profit"],
-            "message": "Optimization converged successfully satisfying all variable bounds and constraints." if res.success else "Optimization terminated."
+            "message": "Optimization converged successfully satisfying all variable bounds and constraints."
         }

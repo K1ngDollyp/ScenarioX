@@ -1,9 +1,14 @@
 import numpy as np
-import pandas as pd
 from typing import List, Dict, Any, Optional
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_absolute_error, root_mean_squared_error
 from app.schemas.forecast import HistoricalDataPoint, ForecastResultItem
+
+try:
+    import pandas as pd
+    from sklearn.linear_model import LinearRegression
+    from sklearn.metrics import mean_absolute_error, root_mean_squared_error
+    HAS_SKLEARN = True
+except ImportError:
+    HAS_SKLEARN = False
 
 
 class ForecastingEngine:
@@ -25,37 +30,44 @@ class ForecastingEngine:
                 "At least 3 historical time periods are required for forecasting."
             )
 
-        # Convert to pandas DataFrame and sort chronologically
-        df = pd.DataFrame([dp.model_dump() for dp in historical_data])
-        df = df.sort_values(by="period").reset_index(drop=True)
+        periods = [dp.period for dp in historical_data]
+        values = []
+        for dp in historical_data:
+            d_dict = dp.model_dump()
+            val = d_dict.get(target_metric)
+            if val is None:
+                raise ValueError(f"Metric '{target_metric}' not present in historical dataset.")
+            values.append(float(val))
 
-        if target_metric not in df.columns:
-            raise ValueError(f"Metric '{target_metric}' not present in historical dataset.")
+        # Sort chronologically by period
+        sorted_pairs = sorted(zip(periods, values), key=lambda x: x[0])
+        sorted_periods, y = zip(*sorted_pairs)
+        y = np.array(y, dtype=float)
+        X = np.arange(len(y), dtype=float)
 
-        y = df[target_metric].values
-        X = np.arange(len(y)).reshape(-1, 1)
+        if HAS_SKLEARN:
+            X_2d = X.reshape(-1, 1)
+            model = LinearRegression()
+            model.fit(X_2d, y)
+            y_pred_in_sample = model.predict(X_2d)
+            mae = float(mean_absolute_error(y, y_pred_in_sample))
+            rmse = float(root_mean_squared_error(y, y_pred_in_sample))
+            future_X = np.arange(len(y), len(y) + horizon).reshape(-1, 1)
+            future_y = model.predict(future_X)
+        else:
+            # Polyfit linear regression fallback (y = slope * x + intercept)
+            slope, intercept = np.polyfit(X, y, 1)
+            y_pred_in_sample = slope * X + intercept
+            residuals = y - y_pred_in_sample
+            mae = float(np.mean(np.abs(residuals)))
+            rmse = float(np.sqrt(np.mean(residuals ** 2)))
+            future_X = np.arange(len(y), len(y) + horizon)
+            future_y = slope * future_X + intercept
 
-        # Fit linear regression model
-        model = LinearRegression()
-        model.fit(X, y)
-
-        # In-sample predictions & error evaluation metrics
-        y_pred_in_sample = model.predict(X)
-        mae = float(mean_absolute_error(y, y_pred_in_sample))
-        rmse = float(root_mean_squared_error(y, y_pred_in_sample))
-
-        # Standard error of regression residual
         residuals = y - y_pred_in_sample
         std_err = float(np.std(residuals)) if len(residuals) > 1 else 0.05 * float(np.mean(y))
 
-        # Out-of-sample forecast
-        future_X = np.arange(len(y), len(y) + horizon).reshape(-1, 1)
-        future_y = model.predict(future_X)
-
-        # Determine last period string format to project future period labels
-        last_period = str(df["period"].iloc[-1])
         future_predictions = []
-
         for i in range(horizon):
             pred_val = float(future_y[i])
             margin = 1.96 * std_err # 95% confidence interval approximation
