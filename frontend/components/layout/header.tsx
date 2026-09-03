@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Bell, ShieldCheck, ChevronRight } from "lucide-react";
 
 export function Header({ title = "Dashboard" }: { title?: string }) {
-  const [userEmail, setUserEmail] = useState("owner@scenariox.ai");
+  const [userEmail, setUserEmail] = useState("ifedolaposojobi@gmail.com");
 
   useEffect(() => {
     const stored = localStorage.getItem("scenariox_user_email");
@@ -16,7 +16,7 @@ export function Header({ title = "Dashboard" }: { title?: string }) {
 
   const initials = userEmail
     ? userEmail.substring(0, 2).toUpperCase()
-    : "SX";
+    : "IF";
 
   return (
     <header className="h-16 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-6 flex items-center justify-between sticky top-0 z-30">
