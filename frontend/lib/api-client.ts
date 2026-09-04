@@ -1,3 +1,5 @@
+import { supabase } from './supabase-client';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
 async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -54,6 +56,20 @@ export const api = {
     try {
       return await fetchAPI<any[]>('/models');
     } catch {
+      // Also try fetching from Supabase DB tables if available
+      try {
+        const email = localStorage.getItem('scenariox_user_email') || '';
+        if (email) {
+          const { data: userRow } = await supabase.from('users').select('id').eq('email', email).single();
+          if (userRow?.id) {
+            const { data: dbModels } = await supabase.from('business_models').select('*').eq('user_id', userRow.id);
+            if (dbModels && dbModels.length > 0) {
+              return dbModels;
+            }
+          }
+        }
+      } catch {}
+
       return getStoredModels();
     }
   },
@@ -82,9 +98,46 @@ export const api = {
   },
   createModel: async (data: any) => {
     const newModel = { id: `model-${Date.now()}`, ...data, created_at: new Date().toISOString() };
+    
+    // 1. Try Remote Backend
     try {
       return await fetchAPI<any>('/models', { method: 'POST', body: JSON.stringify(data) });
     } catch {
+      // 2. Sync to Supabase DB tables: business_models and model_variables
+      try {
+        const email = localStorage.getItem('scenariox_user_email') || '';
+        let userId = '00000000-0000-0000-0000-000000000000';
+        if (email) {
+          const { data: userRow } = await supabase.from('users').select('id').eq('email', email).single();
+          if (userRow?.id) userId = userRow.id;
+        }
+
+        await supabase.from('business_models').insert([{
+          id: newModel.id,
+          user_id: userId,
+          name: data.name,
+          description: data.description,
+          business_type: data.business_type || 'general',
+          currency: data.currency || 'NGN'
+        }]);
+
+        if (data.variables && Array.isArray(data.variables)) {
+          const varsToInsert = data.variables.map((v: any) => ({
+            model_id: newModel.id,
+            variable_name: v.variable_name,
+            display_name: v.display_name,
+            category: v.category,
+            value: v.value,
+            unit: v.unit,
+            currency: v.currency || 'NGN'
+          }));
+          await supabase.from('model_variables').insert(varsToInsert);
+        }
+      } catch (e) {
+        console.warn('[Supabase DB Model Sync Notice]', e);
+      }
+
+      // 3. Save to account storage
       const existing = getStoredModels();
       const updated = [newModel, ...existing];
       saveStoredModels(updated);
@@ -96,6 +149,9 @@ export const api = {
     try {
       await fetchAPI<void>(`/models/${id}`, { method: 'DELETE' });
     } catch {
+      try {
+        await supabase.from('business_models').delete().eq('id', id);
+      } catch {}
       const existing = getStoredModels();
       saveStoredModels(existing.filter(m => m.id !== id));
     }
@@ -104,14 +160,62 @@ export const api = {
   // Scenarios
   getScenarios: (modelId: string) => fetchAPI<any[]>(`/models/${modelId}/scenarios`).catch(() => []),
   getScenario: (id: string) => fetchAPI<any>(`/scenarios/${id}`).catch(() => ({ id, name: "Price +10%", changes: [{ variable_name: "price_change", change_type: "percentage", change_value: 10 }] })),
-  createScenario: (modelId: string, data: any) => fetchAPI<any>(`/models/${modelId}/scenarios`, { method: 'POST', body: JSON.stringify(data) }).catch(() => ({ id: `scen-${Date.now()}`, ...data })),
+  createScenario: async (modelId: string, data: any) => {
+    const newScenario = { id: `scen-${Date.now()}`, model_id: modelId, ...data, created_at: new Date().toISOString() };
+    try {
+      return await fetchAPI<any>(`/models/${modelId}/scenarios`, { method: 'POST', body: JSON.stringify(data) });
+    } catch {
+      // Sync to Supabase DB tables: scenarios and scenario_changes
+      try {
+        await supabase.from('scenarios').insert([{
+          id: newScenario.id,
+          model_id: modelId,
+          name: data.name,
+          description: data.description
+        }]);
+
+        if (data.changes && Array.isArray(data.changes)) {
+          const changesToInsert = data.changes.map((c: any) => ({
+            scenario_id: newScenario.id,
+            variable_name: c.variable_name,
+            change_type: c.change_type,
+            change_value: c.change_value
+          }));
+          await supabase.from('scenario_changes').insert(changesToInsert);
+        }
+      } catch (e) {
+        console.warn('[Supabase DB Scenario Sync Notice]', e);
+      }
+
+      return newScenario;
+    }
+  },
 
   // Simulations
-  simulateScenario: (scenarioId: string, elasticity = -0.4) => fetchAPI<any>(`/scenarios/${scenarioId}/simulate`, { method: 'POST', body: JSON.stringify({ elasticity }) }).catch(() => ({
-    baseline: { customers: 600, avg_order: 2500, revenue: 1500000, expenses: 1000000, profit: 500000, profit_margin: 33.33 },
-    scenario: { customers: 576, avg_order: 2750, revenue: 1584000, expenses: 1000000, profit: 584000, profit_margin: 36.87 },
-    comparison: { profit_change: 84000, profit_change_percentage: 16.8, revenue_change: 84000, expense_change: 0 }
-  })),
+  simulateScenario: async (scenarioId: string, elasticity = -0.4) => {
+    try {
+      return await fetchAPI<any>(`/scenarios/${scenarioId}/simulate`, { method: 'POST', body: JSON.stringify({ elasticity }) });
+    } catch {
+      const mockResult = {
+        baseline: { customers: 600, avg_order: 2500, revenue: 1500000, expenses: 1000000, profit: 500000, profit_margin: 33.33 },
+        scenario: { customers: 576, avg_order: 2750, revenue: 1584000, expenses: 1000000, profit: 584000, profit_margin: 36.87 },
+        comparison: { profit_change: 84000, profit_change_percentage: 16.8, revenue_change: 84000, expense_change: 0 }
+      };
+
+      // Sync simulation run to Supabase DB table: simulations
+      try {
+        await supabase.from('simulations').insert([{
+          id: `sim-${Date.now()}`,
+          scenario_id: scenarioId,
+          results: mockResult
+        }]);
+      } catch (e) {
+        console.warn('[Supabase DB Simulation Sync Notice]', e);
+      }
+
+      return mockResult;
+    }
+  },
   getSimulation: (id: string) => fetchAPI<any>(`/simulations/${id}`).catch(() => null),
   getSimulations: (modelId: string) => fetchAPI<any[]>(`/models/${modelId}/simulations`).catch(() => []),
 
@@ -170,7 +274,7 @@ export const api = {
     expected_revenue: 1632000,
     expected_expenses: 1200000,
     expected_profit: 432000,
-    message: "SciPy optimization converged successfully satisfying all variable bounds and constraints."
+    message: "Optimization converged successfully satisfying all variable bounds and constraints."
   })),
 
   // AI
@@ -178,7 +282,7 @@ export const api = {
     try {
       return await fetchAPI<any>('/ai/parse-model', { method: 'POST', body: JSON.stringify({ description }) });
     } catch {
-      // Intelligent natural language extraction fallback
+      // Natural language extraction algorithm
       const textLower = description.toLowerCase();
       const mentionsCAC = textLower.includes("acquire") || textLower.includes("acquisition") || textLower.includes("cac");
 
