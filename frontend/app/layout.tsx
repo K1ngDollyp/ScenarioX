@@ -2,8 +2,8 @@ import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "ScenarioX: An AI-Powered Scenario Simulation and Decision Support Platform",
-  description: "Simulate Decisions. Understand Outcomes. The AI interprets. The mathematics calculates.",
+  title: "ScenarioX: Bespoke Scenario Simulation & Decision Support Platform",
+  description: "Test business decisions before you spend real money. Verified Python mathematics.",
 };
 
 export default function RootLayout({
@@ -12,10 +12,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="bg-slate-950 text-slate-100 antialiased min-h-screen">
+    <html lang="en">
+      <body className="bg-[#faf8f5] text-[#1c1917] antialiased min-h-screen">
         {children}
       </body>
     </html>
   );
 }
+

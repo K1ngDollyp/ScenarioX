@@ -150,28 +150,38 @@ class ScenarioService:
             scenarios = list(res.scalars().all())
             if scenarios:
                 return scenarios
+
+            # Auto-seed default scenario directly into PostgreSQL database
+            seed_id = uuid.uuid4()
+            scenario = ScenarioDB(
+                id=seed_id,
+                model_id=model_id,
+                name="10% Price Increase + Elasticity",
+                description="Test raising prices by 10% assuming -0.4 elasticity."
+            )
+            session.add(scenario)
+            await session.flush()
+
+            chg = ScenarioChangeDB(
+                id=uuid.uuid4(),
+                scenario_id=seed_id,
+                variable_name="price_change",
+                change_type="percentage",
+                change_value=10.0
+            )
+            session.add(chg)
+            await session.commit()
+
+            res = await session.execute(stmt)
+            scenarios = list(res.scalars().all())
+            if scenarios:
+                return scenarios
         except Exception:
             pass
 
         scens = [s for s in IN_MEMORY_SCENARIOS.values() if str(s["model_id"]) == str(model_id)]
-        if not scens:
-            # Generate seed
-            seed_id = str(uuid.uuid4())
-            seed_dict = {
-                "id": seed_id,
-                "model_id": str(model_id),
-                "name": "10% Price Increase + Elasticity",
-                "description": "Test raising prices by 10% assuming -0.4 elasticity.",
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow(),
-                "changes": [
-                    {"id": str(uuid.uuid4()), "variable_name": "price_change", "change_type": "percentage", "change_value": 10.0}
-                ]
-            }
-            IN_MEMORY_SCENARIOS[seed_id] = seed_dict
-            scens = [seed_dict]
-
         return [SimpleScenarioWrapper(s) for s in scens]
+
 
     @classmethod
     async def update_scenario(
