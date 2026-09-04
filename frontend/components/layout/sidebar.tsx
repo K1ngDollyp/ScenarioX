@@ -41,25 +41,25 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 bg-[#0a0e17] border-r border-white/10 flex flex-col justify-between hidden md:flex min-h-screen sticky top-0 h-screen z-40">
+    <aside className="w-64 bg-[#f4efe6] border-r border-[#e4dcd0] flex flex-col justify-between hidden md:flex min-h-screen sticky top-0 h-screen z-40">
       <div className="p-5">
         {/* Brand Header */}
         <Link href="/dashboard" className="flex items-center gap-3 px-2 py-2 mb-6 group">
-          <div className="w-10 h-10 rounded-xl bg-[#c85a32] flex items-center justify-center font-extrabold text-white text-base shadow-md group-hover:bg-[#e07a5f] transition-colors">
+          <div className="w-10 h-10 rounded-xl bg-[#c85a32] flex items-center justify-center font-serif font-bold text-white text-base shadow-sm group-hover:bg-[#b04a25] transition-colors">
             SX
           </div>
           <div>
-            <h1 className="font-serif text-xl font-bold tracking-tight text-white group-hover:text-[#e07a5f] transition-colors">
+            <h1 className="font-serif text-xl font-bold tracking-tight text-[#1c1917] group-hover:text-[#c85a32] transition-colors">
               ScenarioX
             </h1>
-            <p className="text-[11px] text-stone-400 font-medium tracking-wide">Financial Studio</p>
+            <p className="text-[11px] text-[#78716c] font-medium tracking-wide">Financial Studio</p>
           </div>
         </Link>
 
         {/* Quick New Model Action */}
         <Link
           href="/dashboard/models/create-ai"
-          className="flex items-center justify-center gap-2 w-full py-2.5 px-4 mb-6 rounded-xl bg-[#c85a32] hover:bg-[#b04b27] text-white font-semibold text-xs transition-all shadow-sm"
+          className="flex items-center justify-center gap-2 w-full py-2.5 px-4 mb-6 rounded-xl bg-[#c85a32] hover:bg-[#b04a25] text-white font-semibold text-xs transition-all shadow-sm"
         >
           <PlusCircle className="w-4 h-4" />
           <span>New Business Model</span>
@@ -74,13 +74,13 @@ export function Sidebar() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs transition-all ${
                   isActive
-                    ? "bg-[#161f33] text-white border-l-2 border-[#c85a32] font-semibold"
-                    : "text-stone-400 hover:text-stone-100 hover:bg-[#121929]"
+                    ? "bg-[#ffffff] text-[#c85a32] border-l-4 border-[#c85a32] font-semibold shadow-sm"
+                    : "text-[#57534e] hover:text-[#1c1917] hover:bg-[#eae3d5] font-medium"
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? "text-[#e07a5f]" : "text-stone-400"}`} />
+                <Icon className={`w-4 h-4 ${isActive ? "text-[#c85a32]" : "text-[#78716c]"}`} />
                 <span>{item.name}</span>
               </Link>
             );
@@ -89,20 +89,21 @@ export function Sidebar() {
       </div>
 
       {/* Footer Actions */}
-      <div className="p-5 border-t border-white/10 space-y-3">
+      <div className="p-5 border-t border-[#e4dcd0] space-y-3">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[#121929] hover:bg-rose-500/10 border border-white/5 hover:border-rose-500/30 text-stone-400 hover:text-rose-400 text-xs font-medium transition"
+          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[#eae3d5] hover:bg-rose-50 border border-[#dfd7c8] hover:border-rose-200 text-[#57534e] hover:text-rose-600 text-xs font-medium transition"
         >
           <LogOut className="w-3.5 h-3.5" />
           <span>Sign Out</span>
         </button>
 
-        <div className="p-3 rounded-xl bg-[#070a12] border border-white/5 text-[11px] text-stone-500 text-center font-mono">
+        <div className="p-3 rounded-xl bg-[#ffffff] border border-[#e4dcd0] text-[11px] text-[#78716c] text-center font-mono shadow-sm">
           <span>Python Math Engine • Verified</span>
         </div>
       </div>
     </aside>
   );
 }
+
 

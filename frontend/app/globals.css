@@ -6,12 +6,13 @@
 
 @layer base {
   body {
-    @apply bg-[#0a0e17] text-[#e2e8f0] antialiased min-h-screen selection:bg-[#c85a32]/40 selection:text-[#ffffff];
+    @apply bg-[#faf8f5] text-[#1c1917] antialiased min-h-screen selection:bg-[#c85a32]/20 selection:text-[#1c1917];
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   }
 
   h1, h2, h3, .font-serif {
     font-family: 'Playfair Display', Georgia, serif;
+    color: #1c1917;
   }
 
   code, pre, .font-mono {
@@ -19,40 +20,41 @@
   }
 }
 
-/* Bespoke Editorial Cards */
+/* Bespoke Warm Light Editorial Cards */
 .glass-panel {
-  background: #111726;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.5);
-  border-radius: 1rem;
+  background: #ffffff;
+  border: 1px solid #e7e0d3;
+  box-shadow: 0 4px 20px -4px rgba(40, 30, 20, 0.05);
+  border-radius: 1.25rem;
 }
 
 .editorial-card {
-  background: #111726;
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: #ffffff;
+  border: 1px solid #e7e0d3;
   border-radius: 1.25rem;
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
-  transition: all 0.25s ease;
+  box-shadow: 0 6px 24px -6px rgba(40, 30, 20, 0.06);
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .editorial-card:hover {
-  border-color: rgba(200, 90, 50, 0.4);
+  border-color: #c85a32;
   transform: translateY(-2px);
-  box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 12px 32px -8px rgba(200, 90, 50, 0.12);
 }
 
-/* Warm human accent pills */
+/* Warm Human Accent Pills */
 .tag-terracotta {
-  background: rgba(200, 90, 50, 0.15);
-  color: #e07a5f;
-  border: 1px solid rgba(200, 90, 50, 0.3);
+  background: rgba(200, 90, 50, 0.1);
+  color: #c85a32;
+  border: 1px solid rgba(200, 90, 50, 0.25);
 }
 
 .tag-sage {
-  background: rgba(129, 178, 154, 0.15);
-  color: #81b29a;
-  border: 1px solid rgba(129, 178, 154, 0.3);
+  background: rgba(78, 140, 115, 0.12);
+  color: #2d6a4f;
+  border: 1px solid rgba(78, 140, 115, 0.25);
 }
+
 
 
 
