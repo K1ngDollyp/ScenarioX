@@ -24,6 +24,15 @@ export default function SimulationsPage() {
         setSelectedModelId(firstModelId);
         const modelScenarios = await api.getScenarios(firstModelId);
         setScenarios(modelScenarios);
+
+        // Read scenario_id from URL query string if present
+        if (typeof window !== 'undefined') {
+          const urlParams = new URLSearchParams(window.location.search);
+          const qScenId = urlParams.get('scenario_id');
+          if (qScenId) {
+            setSelectedScenarioId(qScenId);
+          }
+        }
       }
     }
     loadModelsAndScenarios();
@@ -271,7 +280,7 @@ export default function SimulationsPage() {
             <div className="glass-panel p-6 space-y-4 border-brand-500/40">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-brand-400 uppercase tracking-wider">
-                  {priceChange >= 0 ? `+${priceChange}%` : `${priceChange}%`} Price Scenario
+                  {simResult.scenario_title || `${priceChange >= 0 ? '+' : ''}${priceChange}% Price Scenario`}
                 </span>
                 <span className={`px-2 py-0.5 rounded text-xs font-bold ${simResult.comparison.profit_change >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
                   {simResult.comparison.profit_change >= 0 ? '+' : ''}{simResult.comparison.profit_change_percentage.toFixed(1)}% Profit
