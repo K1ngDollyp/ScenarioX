@@ -219,12 +219,36 @@ export default function MonteCarloPage() {
             </div>
           </div>
 
+          {/* Plain English Guide Card */}
+          <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-2">
+            <span className="font-bold text-slate-200 text-sm flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-indigo-400" /> What is Monte Carlo Risk Analysis in Plain English?
+            </span>
+            <p className="text-slate-300 leading-relaxed">
+              Real business performance fluctuates (sales vary, foot traffic changes, material costs shift). Monte Carlo runs <strong>1,000 simulated months</strong> with random real-world variations to test how safe your business is.
+            </p>
+            <div className="grid md:grid-cols-3 gap-3 pt-2">
+              <div className="p-2.5 rounded bg-slate-900 border border-slate-800">
+                <span className="font-semibold text-emerald-400 block mb-0.5">Probability of Profit ({mcData.metrics.probabilities.probability_of_profit}%)</span>
+                <p className="text-slate-400">Out of 1,000 simulated months, your business made a profit in {Math.round(mcData.metrics.probabilities.probability_of_profit * 10)} out of 1,000 runs.</p>
+              </div>
+              <div className="p-2.5 rounded bg-slate-900 border border-slate-800">
+                <span className="font-semibold text-brand-400 block mb-0.5">Expected Mean Profit (₦{mcData.metrics.mean.toLocaleString()})</span>
+                <p className="text-slate-400">Your average expected monthly net profit across all simulated market scenarios.</p>
+              </div>
+              <div className="p-2.5 rounded bg-slate-900 border border-slate-800">
+                <span className="font-semibold text-rose-400 block mb-0.5">P5 Worst Case (₦{mcData.metrics.percentiles.p5.toLocaleString()})</span>
+                <p className="text-slate-400">Even in a tough month (bottom 5% worst cases), your estimated profit stays around this amount.</p>
+              </div>
+            </div>
+          </div>
+
           {/* Percentiles Table */}
           <div className="glass-panel p-6 space-y-4">
             <h3 className="font-bold text-white text-base">Confidence & Percentile Markers</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 text-center text-xs">
               <div className="p-3 rounded-lg bg-slate-950 border border-slate-800">
-                <span className="text-slate-400 block mb-1">P5 (Downside)</span>
+                <span className="text-slate-400 block mb-1">P5 (Worst 5%)</span>
                 <span className="font-mono font-bold text-rose-400">₦{mcData.metrics.percentiles.p5.toLocaleString()}</span>
               </div>
               <div className="p-3 rounded-lg bg-slate-950 border border-slate-800">
@@ -236,7 +260,7 @@ export default function MonteCarloPage() {
                 <span className="font-mono font-bold text-slate-300">₦{mcData.metrics.percentiles.p25.toLocaleString()}</span>
               </div>
               <div className="p-3 rounded-lg bg-slate-950 border border-slate-800">
-                <span className="text-slate-400 block mb-1">P50 (Median)</span>
+                <span className="text-slate-400 block mb-1">P50 (Average Month)</span>
                 <span className="font-mono font-bold text-white">₦{mcData.metrics.percentiles.p50.toLocaleString()}</span>
               </div>
               <div className="p-3 rounded-lg bg-slate-950 border border-slate-800">
@@ -248,7 +272,7 @@ export default function MonteCarloPage() {
                 <span className="font-mono font-bold text-emerald-400">₦{mcData.metrics.percentiles.p90.toLocaleString()}</span>
               </div>
               <div className="p-3 rounded-lg bg-slate-950 border border-slate-800">
-                <span className="text-slate-400 block mb-1">P95 (Upside)</span>
+                <span className="text-slate-400 block mb-1">P95 (Best 5%)</span>
                 <span className="font-mono font-bold text-emerald-300">₦{mcData.metrics.percentiles.p95.toLocaleString()}</span>
               </div>
             </div>
