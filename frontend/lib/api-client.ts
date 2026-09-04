@@ -56,7 +56,6 @@ export const api = {
     try {
       return await fetchAPI<any[]>('/models');
     } catch {
-      // Also try fetching from Supabase DB tables if available
       try {
         const email = localStorage.getItem('scenariox_user_email') || '';
         if (email) {
@@ -85,7 +84,7 @@ export const api = {
         currency: "NGN",
         description: "600 customers/month @ ₦2,500 avg order, ₦1.0M operating expenses.",
         variables: [
-          { variable_name: "customers_per_month", display_name: "Customers per Month", category: "revenue", value: 600, unit: "customers/month", currency: "NGN" },
+          { variable_name: "customers_per_month", display_name: "Customers per Month", category: "revenue", value: 600, unit: "customers/month", currency: "N/A" },
           { variable_name: "average_order_value", display_name: "Average Order Value", category: "revenue", value: 2500, unit: "NGN/order", currency: "NGN" },
           { variable_name: "inventory_cost", display_name: "Inventory Cost", category: "expense", value: 500000, unit: "NGN/month", currency: "NGN" },
           { variable_name: "salary_cost", display_name: "Salary Cost", category: "expense", value: 250000, unit: "NGN/month", currency: "NGN" },
@@ -97,11 +96,20 @@ export const api = {
     }
   },
   createModel: async (data: any) => {
-    const newModel = { id: `model-${Date.now()}`, ...data, created_at: new Date().toISOString() };
+    // Ensure customers_per_month and quantity variables have currency="N/A"
+    const cleanedVariables = (data.variables || []).map((v: any) => {
+      const isQuantity = v.variable_name.includes('customer') || v.unit.includes('customer') || v.unit.includes('count') || v.unit.includes('unit');
+      return {
+        ...v,
+        currency: isQuantity ? 'N/A' : (v.currency || 'NGN')
+      };
+    });
+
+    const newModel = { id: `model-${Date.now()}`, ...data, variables: cleanedVariables, created_at: new Date().toISOString() };
     
     // 1. Try Remote Backend
     try {
-      return await fetchAPI<any>('/models', { method: 'POST', body: JSON.stringify(data) });
+      return await fetchAPI<any>('/models', { method: 'POST', body: JSON.stringify({ ...data, variables: cleanedVariables }) });
     } catch {
       // 2. Sync to Supabase DB tables: business_models and model_variables
       try {
@@ -121,18 +129,16 @@ export const api = {
           currency: data.currency || 'NGN'
         }]);
 
-        if (data.variables && Array.isArray(data.variables)) {
-          const varsToInsert = data.variables.map((v: any) => ({
-            model_id: newModel.id,
-            variable_name: v.variable_name,
-            display_name: v.display_name,
-            category: v.category,
-            value: v.value,
-            unit: v.unit,
-            currency: v.currency || 'NGN'
-          }));
-          await supabase.from('model_variables').insert(varsToInsert);
-        }
+        const varsToInsert = cleanedVariables.map((v: any) => ({
+          model_id: newModel.id,
+          variable_name: v.variable_name,
+          display_name: v.display_name,
+          category: v.category,
+          value: v.value,
+          unit: v.unit,
+          currency: v.currency
+        }));
+        await supabase.from('model_variables').insert(varsToInsert);
       } catch (e) {
         console.warn('[Supabase DB Model Sync Notice]', e);
       }
@@ -165,7 +171,6 @@ export const api = {
     try {
       return await fetchAPI<any>(`/models/${modelId}/scenarios`, { method: 'POST', body: JSON.stringify(data) });
     } catch {
-      // Sync to Supabase DB tables: scenarios and scenario_changes
       try {
         await supabase.from('scenarios').insert([{
           id: newScenario.id,
@@ -202,7 +207,6 @@ export const api = {
         comparison: { profit_change: 84000, profit_change_percentage: 16.8, revenue_change: 84000, expense_change: 0 }
       };
 
-      // Sync simulation run to Supabase DB table: simulations
       try {
         await supabase.from('simulations').insert([{
           id: `sim-${Date.now()}`,
@@ -280,9 +284,15 @@ export const api = {
   // AI
   parseModel: async (description: string) => {
     try {
-      return await fetchAPI<any>('/ai/parse-model', { method: 'POST', body: JSON.stringify({ description }) });
+      const res: any = await fetchAPI<any>('/ai/parse-model', { method: 'POST', body: JSON.stringify({ description }) });
+      if (res?.extracted_variables) {
+        res.extracted_variables = res.extracted_variables.map((v: any) => ({
+          ...v,
+          currency: v.variable_name.includes('customer') || (v.unit && v.unit.includes('customer')) ? 'N/A' : (v.currency || 'NGN')
+        }));
+      }
+      return res;
     } catch {
-      // Natural language extraction algorithm
       const textLower = description.toLowerCase();
       const mentionsCAC = textLower.includes("acquire") || textLower.includes("acquisition") || textLower.includes("cac");
 
@@ -290,7 +300,7 @@ export const api = {
       const cacVal = cacMatch ? parseFloat(cacMatch[1].replace(/,/g, '')) : 1000;
 
       const variables: any[] = [
-        { variable_name: "customers_per_month", display_name: "Customers per Month", category: "revenue", value: 600, unit: "customers/month", period: "month", currency: "NGN", source: "ai_extracted" },
+        { variable_name: "customers_per_month", display_name: "Customers per Month", category: "revenue", value: 600, unit: "customers/month", period: "month", currency: "N/A", source: "ai_extracted" },
         { variable_name: "average_order_value", display_name: "Average Order Value", category: "revenue", value: 2500, unit: "NGN/order", period: "order", currency: "NGN", source: "ai_extracted" },
         { variable_name: "inventory_cost", display_name: "food/materials", category: "expense", value: 500000, unit: "NGN/month", period: "month", currency: "NGN", source: "ai_extracted" },
         { variable_name: "salary_cost", display_name: "salaries/wages", category: "expense", value: 250000, unit: "NGN/month", period: "month", currency: "NGN", source: "ai_extracted" },
