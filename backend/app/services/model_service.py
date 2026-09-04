@@ -105,12 +105,12 @@ class ModelService:
         session: AsyncSession,
         user_id: uuid.UUID
     ) -> List[Any]:
-        # Query Supabase REST
-        records = SupabaseREST.select("business_models", "select=*,variables:model_variables(*)")
+        # Query Supabase REST with strict user_id account isolation filter
+        records = SupabaseREST.select("business_models", f"user_id=eq.{user_id}&select=*,variables:model_variables(*)")
         if records:
             return [SimpleModelWrapper(r) for r in records]
 
-        # Auto-seed default model directly to Supabase REST
+        # Auto-seed default model directly to Supabase REST for this specific user account
         await cls.ensure_user_exists(session, user_id)
         seed_id = str(uuid.uuid4())
         model_payload = {
@@ -145,7 +145,7 @@ class ModelService:
         user_id: uuid.UUID,
         model_id: uuid.UUID
     ) -> Any:
-        records = SupabaseREST.select("business_models", f"id=eq.{model_id}&select=*,variables:model_variables(*)")
+        records = SupabaseREST.select("business_models", f"id=eq.{model_id}&user_id=eq.{user_id}&select=*,variables:model_variables(*)")
         if records:
             return SimpleModelWrapper(records[0])
 

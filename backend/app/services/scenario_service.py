@@ -108,8 +108,8 @@ class ScenarioService:
         user_id: uuid.UUID,
         model_id: uuid.UUID
     ) -> List[Any]:
-        # Query Supabase REST
-        records = SupabaseREST.select("scenarios", f"select=*,changes:scenario_changes(*)")
+        # Query Supabase REST with model_id isolation filter
+        records = SupabaseREST.select("scenarios", f"model_id=eq.{model_id}&select=*,changes:scenario_changes(*)")
         if records:
             return [SimpleScenarioWrapper(r) for r in records]
 
