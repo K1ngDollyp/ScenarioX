@@ -28,7 +28,7 @@ export default function RegisterPage() {
     }
 
     try {
-      // Execute strict Supabase Auth Registration
+      // 1. Register user in Supabase Auth (auth.users)
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -41,15 +41,24 @@ export default function RegisterPage() {
       }
 
       if (data?.user) {
+        // 2. Insert row into public.users table shown in Table Editor
+        try {
+          await supabase
+            .from("users")
+            .insert([{ id: data.user.id, email: data.user.email }]);
+        } catch {
+          // Ignore if public.users trigger handles it
+        }
+
         if (data?.session) {
           localStorage.setItem("scenariox_user_email", email);
           localStorage.setItem("scenariox_auth_token", data.session.access_token);
           router.push("/dashboard");
         } else {
-          setSuccessMsg("Account created in Supabase! Please check your email to confirm registration or log in.");
+          setSuccessMsg("Account created in Supabase! You can now log in.");
         }
       } else {
-        setErrorMsg("Supabase Auth did not return a valid user session. Please try again.");
+        setErrorMsg("Supabase Auth did not return a valid user object. Please try again.");
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Registration failed. Please check network connection.");
@@ -124,7 +133,7 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full py-3 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition shadow-md shadow-brand-600/30 flex items-center justify-center gap-2"
           >
-            <span>{loading ? "Creating Supabase Account..." : "Register Account"}</span>
+            <span>{loading ? "Creating Supabase User..." : "Register Account"}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
