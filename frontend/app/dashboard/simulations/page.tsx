@@ -32,19 +32,24 @@ export default function SimulationsPage() {
       // Calculate dynamic baseline from active model variables
       let customers = 600;
       let avgOrder = 2500;
-      let expenses = 1000000;
+      let expenses = 0;
 
       if (activeModel?.variables) {
         const custVar = activeModel.variables.find((v: any) => v.variable_name === 'customers_per_month');
         const orderVar = activeModel.variables.find((v: any) => v.variable_name === 'average_order_value');
-        const expVars = activeModel.variables.filter((v: any) => v.category === 'expense');
 
         if (custVar) customers = Number(custVar.value) || 600;
         if (orderVar) avgOrder = Number(orderVar.value) || 2500;
-        if (expVars.length > 0) {
-          expenses = expVars.reduce((sum: number, v: any) => sum + (Number(v.value) || 0), 0);
-        }
+
+        // Sum up all expense category variables
+        activeModel.variables.forEach((v: any) => {
+          if (v.category === 'expense' && v.variable_name !== 'customers_per_month' && v.variable_name !== 'average_order_value') {
+            expenses += Number(v.value) || 0;
+          }
+        });
       }
+
+      if (expenses === 0) expenses = 1000000;
 
       const baselineRevenue = customers * avgOrder;
       const baselineProfit = baselineRevenue - expenses;
@@ -71,15 +76,21 @@ export default function SimulationsPage() {
 
       setSimResult(calculatedResult);
 
-      // Generate AI explanation for dynamic results
-      const explanation = await api.explainResults(calculatedResult).catch(() => ({
-        summary: `The scenario results in a net profit change of ${profitChange >= 0 ? '+' : ''}₦${profitChange.toLocaleString()} (${profitChangePct >= 0 ? '+' : ''}${profitChangePct.toFixed(1)}%).`,
-        what_happened: `Net monthly profit changed from ₦${baselineProfit.toLocaleString()} to ₦${scenarioProfit.toLocaleString()}.`,
-        why_it_happened: `A ${priceChange}% price change adjusted order value to ₦${newAvgOrder.toLocaleString()} while demand elasticity (${elasticity}) adjusted customer volume to ${newCustomers} customers.`,
-        main_risks: "Competitor pricing reactions or sudden changes in customer price sensitivity.",
-        most_sensitive_variable: "Average Order Value & Price Elasticity",
-        practical_takeaway: "Maintaining service quality will preserve customer retention during pricing adjustments."
-      }));
+      // Generate accurate executive insights
+      const isProfitUp = profitChange > 0;
+      const explanation = {
+        summary: `The price scenario results in a net profit ${isProfitUp ? 'increase' : 'decrease'} of ₦${Math.abs(profitChange).toLocaleString()} (${isProfitUp ? '+' : ''}${profitChangePct.toFixed(1)}%).`,
+        what_happened: `Net monthly profit moves from ₦${baselineProfit.toLocaleString()} to ₦${scenarioProfit.toLocaleString()} under a ${priceChange}% price adjustment.`,
+        why_it_happened: priceChange === 0 
+          ? `No price change was applied. Operating expenses stand at ₦${expenses.toLocaleString()}, resulting in net profit of ₦${baselineProfit.toLocaleString()}.`
+          : `A ${priceChange}% price adjustment changed average order value to ₦${Math.round(newAvgOrder).toLocaleString()}. Demand elasticity (${elasticity}) adjusted customer volume to ${newCustomers} customers/month.`,
+        main_risks: priceChange > 0 
+          ? "Higher prices could cause customer churn if service quality declines."
+          : "Lower prices reduce per-unit revenue margins unless volume increases significantly.",
+        practical_takeaway: isProfitUp 
+          ? "Your margin gains outpace customer volume loss, boosting overall profit."
+          : "The price change decreases net profit; consider reviewing pricing or reducing expenses."
+      };
 
       setAiExplanation(explanation);
     } finally {
