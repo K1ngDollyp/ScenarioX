@@ -18,6 +18,26 @@ export default function DashboardPage() {
 
   const activeModel = models[0];
 
+  // Dynamically compute active model baseline profit
+  let activeProfit = 0;
+  let activeRevenue = 0;
+  let activeExpenses = 0;
+  if (activeModel?.variables) {
+    const custVar = activeModel.variables.find((v: any) => v.variable_name === 'customers_per_month');
+    const orderVar = activeModel.variables.find((v: any) => v.variable_name === 'average_order_value');
+    const custs = custVar ? (Number(custVar.value) || 0) : 600;
+    const avgOrd = orderVar ? (Number(orderVar.value) || 0) : 2500;
+    activeRevenue = custs * avgOrd;
+
+    activeModel.variables.forEach((v: any) => {
+      if (v.category === 'expense' && v.variable_name !== 'customers_per_month' && v.variable_name !== 'average_order_value') {
+        activeExpenses += Number(v.value) || 0;
+      }
+    });
+
+    activeProfit = activeRevenue - activeExpenses;
+  }
+
   return (
     <div className="space-y-8">
       {/* Header Banner */}
@@ -52,43 +72,45 @@ export default function DashboardPage() {
             </div>
           </div>
           <p className="text-2xl font-extrabold text-white">{models.length} {models.length === 1 ? 'Model' : 'Models'}</p>
-          <p className="text-xs text-slate-500 mt-1">{activeModel ? activeModel.name : "No active models created"}</p>
+          <p className="text-xs text-slate-500 mt-1 truncate">{activeModel ? activeModel.name : "No active models created"}</p>
         </div>
 
         <div className="glass-panel p-5 glow-hover">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-slate-400">Tested Scenarios</span>
+            <span className="text-xs font-medium text-slate-400">Monthly Revenue</span>
             <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
               <GitFork className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-extrabold text-white">{models.length > 0 ? "1 Scenario" : "0 Scenarios"}</p>
-          <p className="text-xs text-slate-500 mt-1">{models.length > 0 ? "Price raise & elasticity" : "Create a model to build scenarios"}</p>
+          <p className="text-2xl font-extrabold text-white">₦{activeRevenue.toLocaleString()}</p>
+          <p className="text-xs text-slate-500 mt-1">{models.length > 0 ? "Baseline Gross Revenue" : "Create a model"}</p>
         </div>
 
         <div className="glass-panel p-5 glow-hover">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-slate-400">Executed Simulations</span>
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+            <span className="text-xs font-medium text-slate-400">Total Operating Expenses</span>
+            <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400">
               <PlaySquare className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-extrabold text-white">{models.length > 0 ? "1 Run" : "0 Runs"}</p>
+          <p className="text-2xl font-extrabold text-white">₦{activeExpenses.toLocaleString()}</p>
           <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
             <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-            <span>Complete Audit Logs</span>
+            <span>Monthly Overhead</span>
           </p>
         </div>
 
         <div className="glass-panel p-5 glow-hover">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-slate-400">Latest Scenario Profit</span>
+            <span className="text-xs font-medium text-slate-400">Baseline Monthly Net Profit</span>
             <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-extrabold text-emerald-400">{models.length > 0 ? "₦584,000" : "₦0"}</p>
-          <p className="text-xs text-slate-500 mt-1 font-mono">{models.length > 0 ? "+16.8% vs Baseline (+₦84k)" : "No runs evaluated"}</p>
+          <p className={`text-2xl font-extrabold ${activeProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+            ₦{activeProfit.toLocaleString()}
+          </p>
+          <p className="text-xs text-slate-500 mt-1 font-mono">{activeRevenue > 0 ? `${((activeProfit / activeRevenue) * 100).toFixed(1)}% Profit Margin` : "No model data"}</p>
         </div>
       </div>
 
