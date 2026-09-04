@@ -150,7 +150,41 @@ export const api = {
       return newModel;
     }
   },
-  updateModel: (id: string, data: any) => fetchAPI<any>(`/models/${id}`, { method: 'PATCH', body: JSON.stringify(data) }).catch(() => data),
+  updateModel: async (id: string, data: any) => {
+    try {
+      return await fetchAPI<any>(`/models/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    } catch {
+      try {
+        await supabase.from('business_models').update({
+          name: data.name,
+          description: data.description,
+          business_type: data.business_type,
+          currency: data.currency
+        }).eq('id', id);
+
+        if (data.variables && Array.isArray(data.variables)) {
+          await supabase.from('model_variables').delete().eq('model_id', id);
+          const varsToInsert = data.variables.map((v: any) => ({
+            model_id: id,
+            variable_name: v.variable_name,
+            display_name: v.display_name,
+            category: v.category,
+            value: v.value,
+            unit: v.unit,
+            currency: v.currency
+          }));
+          await supabase.from('model_variables').insert(varsToInsert);
+        }
+      } catch (e) {
+        console.warn('[Supabase DB Model Update Sync Notice]', e);
+      }
+
+      const existing = getStoredModels();
+      const updated = existing.map(m => m.id === id ? { ...m, ...data } : m);
+      saveStoredModels(updated);
+      return { id, ...data };
+    }
+  },
   deleteModel: async (id: string) => {
     try {
       await fetchAPI<void>(`/models/${id}`, { method: 'DELETE' });
