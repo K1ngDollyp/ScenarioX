@@ -62,7 +62,25 @@ class ScenarioService:
         IN_MEMORY_SCENARIOS[str(scenario_id)] = scen_dict
 
         try:
-            await ModelService.get_model_by_id(session, user_id, model_id)
+            await ModelService.ensure_user_exists(session, user_id)
+            
+            # Check if parent BusinessModelDB exists in PostgreSQL database
+            res = await session.execute(select(BusinessModelDB).where(BusinessModelDB.id == model_id))
+            parent_model = res.scalar_one_or_none()
+            
+            if not parent_model:
+                # Create parent BusinessModelDB in PostgreSQL if missing
+                parent_model = BusinessModelDB(
+                    id=model_id,
+                    user_id=user_id,
+                    name="Baseline Business Model",
+                    business_type="restaurant",
+                    currency="NGN",
+                    description="Auto-persisted baseline model for scenario management"
+                )
+                session.add(parent_model)
+                await session.flush()
+
             scenario = ScenarioDB(
                 id=scenario_id,
                 model_id=model_id,
@@ -83,8 +101,8 @@ class ScenarioService:
                 session.add(chg_db)
 
             await session.commit()
-        except Exception:
-            pass
+        except Exception as e:
+            await session.rollback()
 
         return SimpleScenarioWrapper(scen_dict)
 
