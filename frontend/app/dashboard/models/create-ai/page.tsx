@@ -69,20 +69,20 @@ export default function AIModelCreationPage() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold text-white">AI Natural Language Assistant</h1>
-        <p className="text-slate-400 text-sm">
+        <h1 className="text-2xl font-serif font-bold text-[#1c1917]">AI Natural Language Assistant</h1>
+        <p className="text-[#57534e] text-sm">
           Describe your business in plain text. ScenarioX will extract your financial parameters into structured math variables.
         </p>
       </div>
 
       {/* Input Box */}
-      <div className="glass-panel p-6 space-y-4">
-        <label className="block text-xs font-semibold text-slate-300">Describe Your Business Model</label>
+      <div className="editorial-card p-6 space-y-4">
+        <label className="block text-xs font-semibold text-[#57534e]">Describe Your Business Model</label>
         <textarea
           rows={4}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full p-4 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-brand-500"
+          className="w-full p-4 rounded-xl bg-[#ffffff] border border-[#e7e0d3] text-[#1c1917] text-sm focus:outline-none focus:border-[#c85a32]"
           placeholder="e.g. I run a SaaS app with 200 subscribers paying $50/mo. Hosting costs $500, marketing $1000..."
         />
 
@@ -90,7 +90,7 @@ export default function AIModelCreationPage() {
           <button
             onClick={handleParse}
             disabled={parsing}
-            className="py-2.5 px-6 rounded-lg bg-gradient-to-r from-brand-600 to-blue-600 hover:from-brand-500 hover:to-blue-500 text-white font-medium text-sm transition shadow-lg shadow-brand-600/20 flex items-center gap-2"
+            className="py-2.5 px-6 rounded-xl bg-[#c85a32] hover:bg-[#b04a25] text-white font-semibold text-sm transition shadow-sm flex items-center gap-2"
           >
             <Sparkles className="w-4 h-4" />
             <span>{parsing ? "Extracting Parameters..." : "Extract Business Variables"}</span>
@@ -101,31 +101,31 @@ export default function AIModelCreationPage() {
       {/* Extracted Variables Preview */}
       {parsedResult && (
         <div className="space-y-6">
-          <div className="glass-panel p-6 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div className="editorial-card p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e7e0d3] pb-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Model Title</label>
+                <label className="block text-xs font-semibold text-[#57534e] mb-1">Model Title</label>
                 <input
                   type="text"
                   value={modelName}
                   onChange={(e) => setModelName(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-white font-bold text-base focus:outline-none focus:border-brand-500"
+                  className="px-3.5 py-2 rounded-xl bg-[#ffffff] border border-[#e7e0d3] text-[#1c1917] font-bold text-base focus:outline-none focus:border-[#c85a32]"
                 />
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-slate-400">
+              <div className="flex items-center gap-2 text-xs text-[#57534e]">
                 <span>Business Category:</span>
-                <span className="font-semibold text-brand-400 uppercase">{parsedResult.business_type}</span>
+                <span className="font-semibold text-[#c85a32] uppercase">{parsedResult.business_type}</span>
               </div>
             </div>
 
             {/* Missing Parameters Warning */}
             {parsedResult.missing_variables && parsedResult.missing_variables.length > 0 && (
-              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs flex items-center gap-3">
+              <div className="p-3.5 rounded-xl bg-[#c85a32]/10 border border-[#c85a32]/20 text-[#c85a32] text-xs flex items-center gap-3">
                 <AlertTriangle className="w-5 h-5 shrink-0" />
                 <div>
                   <p className="font-semibold">Suggested Optional Parameter Detected:</p>
-                  <p className="text-amber-300/80">
+                  <p className="text-[#57534e]">
                     Missing optional parameters: {parsedResult.missing_variables.join(", ")}. You can add or edit variables below.
                   </p>
                 </div>
@@ -134,10 +134,10 @@ export default function AIModelCreationPage() {
 
             {/* Variables Editable Table */}
             <div className="space-y-3">
-              <h3 className="font-bold text-white text-sm">Extracted Business Variables</h3>
+              <h3 className="font-serif font-bold text-[#1c1917] text-sm">Extracted Business Variables</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-950 text-slate-400 font-semibold border-b border-slate-800">
+                  <thead className="bg-[#faf8f5] text-[#78716c] font-semibold border-b border-[#e7e0d3]">
                     <tr>
                       <th className="p-3">Variable</th>
                       <th className="p-3">Category</th>
@@ -146,18 +146,18 @@ export default function AIModelCreationPage() {
                       <th className="p-3">Currency</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
+                  <tbody className="divide-y divide-[#e7e0d3]">
                     {parsedResult.extracted_variables.map((v: any, idx: number) => {
                       const isQuantity = v.variable_name.includes('customer') || (v.unit && v.unit.includes('customer'));
                       return (
-                        <tr key={idx} className="hover:bg-slate-900/40">
-                          <td className="p-3 font-semibold text-white">{v.display_name}</td>
+                        <tr key={idx} className="hover:bg-[#faf8f5]">
+                          <td className="p-3 font-semibold text-[#1c1917]">{v.display_name}</td>
                           <td className="p-3">
                             <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                                 v.category === "revenue"
-                                  ? "bg-emerald-500/10 text-emerald-400"
-                                  : "bg-rose-500/10 text-rose-400"
+                                  ? "tag-sage"
+                                  : "tag-terracotta"
                               }`}
                             >
                               {v.category}
@@ -168,11 +168,11 @@ export default function AIModelCreationPage() {
                               type="number"
                               value={v.value}
                               onChange={(e) => handleVariableChange(idx, "value", parseFloat(e.target.value) || 0)}
-                              className="w-28 px-2 py-1 rounded bg-slate-950 border border-slate-800 text-white font-mono"
+                              className="w-28 px-2.5 py-1 rounded-lg bg-[#ffffff] border border-[#e7e0d3] text-[#1c1917] font-mono"
                             />
                           </td>
-                          <td className="p-3 text-slate-400 font-mono">{v.unit}</td>
-                          <td className="p-3 text-slate-400 font-mono">{isQuantity ? 'N/A' : (v.currency || 'NGN')}</td>
+                          <td className="p-3 text-[#57534e] font-mono">{v.unit}</td>
+                          <td className="p-3 text-[#57534e] font-mono">{isQuantity ? 'N/A' : (v.currency || 'NGN')}</td>
                         </tr>
                       );
                     })}
@@ -181,11 +181,11 @@ export default function AIModelCreationPage() {
               </div>
             </div>
 
-            <div className="flex justify-end pt-4 border-t border-slate-800">
+            <div className="flex justify-end pt-4 border-t border-[#e7e0d3]">
               <button
                 onClick={handleConfirmAndSave}
                 disabled={saving}
-                className="py-3 px-6 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition shadow-lg shadow-emerald-600/20 flex items-center gap-2"
+                className="py-3 px-6 rounded-xl bg-[#2d6a4f] hover:bg-[#1b4332] text-white font-semibold text-sm transition shadow-sm flex items-center gap-2"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 <span>{saving ? "Saving Model..." : "Confirm & Save Model"}</span>
@@ -197,3 +197,4 @@ export default function AIModelCreationPage() {
     </div>
   );
 }
+

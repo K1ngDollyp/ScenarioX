@@ -66,53 +66,53 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
-      <div className="glass-panel max-w-md w-full p-8">
+    <div className="min-h-screen bg-[#FAF8F5] flex items-center justify-center p-6 text-[#1C1917]">
+      <div className="editorial-card max-w-md w-full p-8 shadow-sm border border-[#E7E0D3]">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center font-bold text-white shadow-lg shadow-brand-600/20">
+          <div className="w-10 h-10 rounded-xl bg-[#C85A32] flex items-center justify-center font-serif text-white font-bold text-lg shadow-sm">
             SX
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">Create ScenarioX Account</h2>
-            <p className="text-xs text-slate-400">Financial Modeling & Simulation</p>
+            <h2 className="text-xl font-serif font-bold text-[#1C1917]">Create ScenarioX Account</h2>
+            <p className="text-xs text-[#78716C]">Financial Modeling & Simulation</p>
           </div>
         </div>
 
         {errorMsg && (
-          <div className="p-3.5 mb-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+          <div className="p-3.5 mb-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-900 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-[#C85A32]" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
+            <label className="block text-xs font-semibold text-[#44403C] mb-1">Email Address</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@company.com"
-              className="w-full px-3.5 py-2.5 rounded-lg bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-brand-500"
+              className="w-full px-3.5 py-2.5 rounded-lg bg-white border border-[#E7E0D3] text-[#1C1917] text-sm focus:outline-none focus:border-[#C85A32]"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+            <label className="block text-xs font-semibold text-[#44403C] mb-1">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 6 characters"
-                className="w-full px-3.5 py-2.5 pr-10 rounded-lg bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-brand-500"
+                className="w-full px-3.5 py-2.5 pr-10 rounded-lg bg-white border border-[#E7E0D3] text-[#1C1917] text-sm focus:outline-none focus:border-[#C85A32]"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#78716C] hover:text-[#1C1917] transition"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -122,16 +122,16 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition shadow-md shadow-brand-600/30 flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-lg bg-[#C85A32] hover:bg-[#B24D28] text-white font-semibold text-sm transition shadow-sm flex items-center justify-center gap-2"
           >
             <span>{loading ? "Creating Account..." : "Create Account & Continue"}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        <div className="mt-6 pt-6 border-t border-slate-800/80 text-center text-xs text-slate-400">
+        <div className="mt-6 pt-6 border-t border-[#E7E0D3] text-center text-xs text-[#78716C]">
           Already have an account?{" "}
-          <Link href="/login" className="text-brand-400 hover:underline font-medium">
+          <Link href="/login" className="text-[#C85A32] hover:underline font-medium">
             Sign in
           </Link>
         </div>
