@@ -97,8 +97,8 @@ export default function SimulationsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Deterministic Simulation</h1>
-          <p className="text-slate-400 text-sm">Execute un-hallucinated mathematical calculations on your active business model.</p>
+          <h1 className="text-2xl font-bold text-white">Financial Simulation</h1>
+          <p className="text-slate-400 text-sm">Evaluate price changes, demand elasticity, and profit impacts on your business model.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -215,10 +215,10 @@ export default function SimulationsPage() {
             <div className="glass-panel p-6 space-y-4 border-indigo-500/30">
               <div className="flex items-center gap-2 text-indigo-400">
                 <Sparkles className="w-5 h-5" />
-                <h3 className="font-bold text-white text-base">AI Results Explanation Layer</h3>
+                <h3 className="font-bold text-white text-base">Executive Insights Summary</h3>
               </div>
-              <p className="text-xs text-slate-400 italic">
-                * Explains model-calculated numerical output ONLY. Never fabricates mathematical results.
+              <p className="text-xs text-slate-400">
+                Automated executive summary of simulation results and key takeaways.
               </p>
 
               <div className="grid md:grid-cols-2 gap-4 text-xs pt-2">
@@ -253,7 +253,7 @@ export default function SimulationsPage() {
             <ul className="list-disc list-inside text-slate-400 space-y-1">
               <li>Baseline Revenue = {simResult.baseline.customers} Customers × ₦{simResult.baseline.avg_order.toLocaleString()} Avg Order = ₦{Math.round(simResult.baseline.revenue).toLocaleString()}</li>
               <li>Price Elasticity ({elasticity}): {priceChange}% price change → {simResult.scenario.customers} customers @ ₦{Math.round(simResult.scenario.avg_order).toLocaleString()} avg order = ₦{Math.round(simResult.scenario.revenue).toLocaleString()}</li>
-              <li>Calculated strictly by pure mathematical simulation engine</li>
+              <li>Calculated by financial simulation engine</li>
             </ul>
           </div>
         </div>

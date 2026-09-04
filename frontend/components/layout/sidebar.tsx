@@ -97,8 +97,8 @@ export function Sidebar() {
         </button>
 
         <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800 text-xs">
-          <p className="text-slate-300 font-semibold mb-1">Strict Mathematical Core</p>
-          <p className="text-slate-500 leading-relaxed">The AI interprets. The mathematics calculates.</p>
+          <p className="text-slate-300 font-semibold mb-1">Financial Intelligence</p>
+          <p className="text-slate-500 leading-relaxed">Simulate revenue, expenses, and risk with confidence.</p>
         </div>
       </div>
     </aside>
