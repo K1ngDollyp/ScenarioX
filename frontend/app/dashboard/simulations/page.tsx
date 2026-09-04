@@ -89,6 +89,7 @@ export default function SimulationsPage() {
       if (selectedScenarioId !== "default_price" && activeScenario) {
         scenarioTitle = activeScenario.name;
         const changes = activeScenario.changes || [];
+        activePriceChange = 0; // Default price change to 0 for custom scenarios unless price_change is explicitly present
         
         // Process scenario changes
         changes.forEach((c: any) => {
@@ -104,8 +105,9 @@ export default function SimulationsPage() {
           } else if (varName === "average_order_value") {
             if (type === "percentage") scenarioAvgOrder = avgOrder * (1 + changeVal / 100);
             else if (type === "absolute") scenarioAvgOrder = Math.max(0, avgOrder + changeVal);
-          } else if (expenseMap[varName] !== undefined || varName.includes('cost') || varName.includes('marketing') || varName.includes('salary') || varName.includes('rent')) {
-            const oldVal = expenseMap[varName] || (expenses / 5);
+          } else {
+            // General expense item modifications (rent, salary, inventory, marketing, etc.)
+            const oldVal = expenseMap[varName] !== undefined ? expenseMap[varName] : (expenses / 5);
             let newVal = oldVal;
             if (type === "percentage") newVal = oldVal * (1 + changeVal / 100);
             else if (type === "absolute") newVal = Math.max(0, oldVal + changeVal);
