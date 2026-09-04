@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api-client";
-import { PlaySquare, Sparkles, TrendingUp, CheckCircle2, Info, Building2 } from "lucide-react";
+import { PlaySquare, Sparkles, TrendingUp, CheckCircle2, Info, Building2, GitFork } from "lucide-react";
 
 export default function SimulationsPage() {
   const [models, setModels] = useState<any[]>([]);
+  const [scenarios, setScenarios] = useState<any[]>([]);
   const [selectedModelId, setSelectedModelId] = useState<string>("");
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string>("default_price");
   const [elasticity, setElasticity] = useState(-0.4);
   const [priceChange, setPriceChange] = useState(10);
   const [running, setRunning] = useState(false);
@@ -14,25 +16,37 @@ export default function SimulationsPage() {
   const [aiExplanation, setAiExplanation] = useState<any>(null);
 
   useEffect(() => {
-    async function loadModels() {
+    async function loadModelsAndScenarios() {
       const activeModels = await api.getModels();
       setModels(activeModels);
       if (activeModels.length > 0) {
-        setSelectedModelId(activeModels[0].id);
+        const firstModelId = activeModels[0].id;
+        setSelectedModelId(firstModelId);
+        const modelScenarios = await api.getScenarios(firstModelId);
+        setScenarios(modelScenarios);
       }
     }
-    loadModels();
+    loadModelsAndScenarios();
   }, []);
 
+  const handleModelSelect = async (modelId: string) => {
+    setSelectedModelId(modelId);
+    const modelScenarios = await api.getScenarios(modelId);
+    setScenarios(modelScenarios);
+    setSelectedScenarioId("default_price");
+  };
+
   const activeModel = models.find(m => m.id === selectedModelId) || models[0];
+  const activeScenario = scenarios.find(s => s.id === selectedScenarioId);
 
   const handleRunSimulation = async () => {
     setRunning(true);
     try {
-      // Calculate dynamic baseline from active model variables
+      // 1. Calculate Baseline metrics
       let customers = 600;
       let avgOrder = 2500;
       let expenses = 0;
+      const expenseMap: Record<string, number> = {};
 
       if (activeModel?.variables) {
         const custVar = activeModel.variables.find((v: any) => v.variable_name === 'customers_per_month');
@@ -41,10 +55,11 @@ export default function SimulationsPage() {
         if (custVar) customers = Number(custVar.value) || 600;
         if (orderVar) avgOrder = Number(orderVar.value) || 2500;
 
-        // Sum up all expense category variables
         activeModel.variables.forEach((v: any) => {
           if (v.category === 'expense' && v.variable_name !== 'customers_per_month' && v.variable_name !== 'average_order_value') {
-            expenses += Number(v.value) || 0;
+            const val = Number(v.value) || 0;
+            expenseMap[v.variable_name] = val;
+            expenses += val;
           }
         });
       }
@@ -55,23 +70,63 @@ export default function SimulationsPage() {
       const baselineProfit = baselineRevenue - expenses;
       const baselineMargin = baselineRevenue > 0 ? (baselineProfit / baselineRevenue) * 100 : 0;
 
-      // Calculate Scenario with Demand Elasticity: %ΔQ = elasticity * %ΔP
-      const newAvgOrder = avgOrder * (1 + priceChange / 100);
-      const customerPctChange = elasticity * (priceChange / 100);
-      const newCustomers = Math.round(customers * (1 + customerPctChange));
-      const scenarioRevenue = newCustomers * newAvgOrder;
-      const scenarioExpenses = expenses;
+      // 2. Compute Scenario modifications based on selected scenario
+      let scenarioCustomers = customers;
+      let scenarioAvgOrder = avgOrder;
+      let scenarioExpenses = expenses;
+      let activePriceChange = priceChange;
+      let scenarioTitle = `${priceChange >= 0 ? '+' : ''}${priceChange}% Price Scenario`;
+
+      if (selectedScenarioId !== "default_price" && activeScenario) {
+        scenarioTitle = activeScenario.name;
+        const changes = activeScenario.changes || [];
+        
+        // Process scenario changes
+        changes.forEach((c: any) => {
+          const varName = c.variable_name;
+          const changeVal = Number(c.change_value) || 0;
+          const type = c.change_type || "percentage";
+
+          if (varName === "price_change") {
+            activePriceChange = changeVal;
+          } else if (varName === "customers_per_month") {
+            if (type === "percentage") scenarioCustomers = Math.round(customers * (1 + changeVal / 100));
+            else if (type === "absolute") scenarioCustomers = Math.max(0, customers + changeVal);
+          } else if (varName === "average_order_value") {
+            if (type === "percentage") scenarioAvgOrder = avgOrder * (1 + changeVal / 100);
+            else if (type === "absolute") scenarioAvgOrder = Math.max(0, avgOrder + changeVal);
+          } else if (expenseMap[varName] !== undefined || varName.includes('cost') || varName.includes('marketing') || varName.includes('salary') || varName.includes('rent')) {
+            const oldVal = expenseMap[varName] || (expenses / 5);
+            let newVal = oldVal;
+            if (type === "percentage") newVal = oldVal * (1 + changeVal / 100);
+            else if (type === "absolute") newVal = Math.max(0, oldVal + changeVal);
+
+            scenarioExpenses = scenarioExpenses - oldVal + newVal;
+          }
+        });
+      }
+
+      // Apply price elasticity if price changed
+      if (activePriceChange !== 0) {
+        scenarioAvgOrder = scenarioAvgOrder * (1 + activePriceChange / 100);
+        const customerPctChange = elasticity * (activePriceChange / 100);
+        scenarioCustomers = Math.round(scenarioCustomers * (1 + customerPctChange));
+      }
+
+      const scenarioRevenue = scenarioCustomers * scenarioAvgOrder;
       const scenarioProfit = scenarioRevenue - scenarioExpenses;
       const scenarioMargin = scenarioRevenue > 0 ? (scenarioProfit / scenarioRevenue) * 100 : 0;
 
       const profitChange = scenarioProfit - baselineProfit;
       const profitChangePct = baselineProfit !== 0 ? (profitChange / Math.abs(baselineProfit)) * 100 : 0;
+      const expenseChange = scenarioExpenses - expenses;
 
       const calculatedResult = {
         model_name: activeModel?.name || "Baseline Model",
+        scenario_title: scenarioTitle,
         baseline: { customers, avg_order: avgOrder, revenue: baselineRevenue, expenses, profit: baselineProfit, profit_margin: baselineMargin },
-        scenario: { customers: newCustomers, avg_order: newAvgOrder, revenue: scenarioRevenue, expenses: scenarioExpenses, profit: scenarioProfit, profit_margin: scenarioMargin },
-        comparison: { profit_change: profitChange, profit_change_percentage: profitChangePct, revenue_change: scenarioRevenue - baselineRevenue, expense_change: 0 }
+        scenario: { customers: scenarioCustomers, avg_order: scenarioAvgOrder, revenue: scenarioRevenue, expenses: scenarioExpenses, profit: scenarioProfit, profit_margin: scenarioMargin },
+        comparison: { profit_change: profitChange, profit_change_percentage: profitChangePct, revenue_change: scenarioRevenue - baselineRevenue, expense_change: expenseChange }
       };
 
       setSimResult(calculatedResult);
@@ -79,17 +134,19 @@ export default function SimulationsPage() {
       // Generate accurate executive insights
       const isProfitUp = profitChange > 0;
       const explanation = {
-        summary: `The price scenario results in a net profit ${isProfitUp ? 'increase' : 'decrease'} of ₦${Math.abs(profitChange).toLocaleString()} (${isProfitUp ? '+' : ''}${profitChangePct.toFixed(1)}%).`,
-        what_happened: `Net monthly profit moves from ₦${baselineProfit.toLocaleString()} to ₦${scenarioProfit.toLocaleString()} under a ${priceChange}% price adjustment.`,
-        why_it_happened: priceChange === 0 
-          ? `No price change was applied. Operating expenses stand at ₦${expenses.toLocaleString()}, resulting in net profit of ₦${baselineProfit.toLocaleString()}.`
-          : `A ${priceChange}% price adjustment changed average order value to ₦${Math.round(newAvgOrder).toLocaleString()}. Demand elasticity (${elasticity}) adjusted customer volume to ${newCustomers} customers/month.`,
-        main_risks: priceChange > 0 
-          ? "Higher prices could cause customer churn if service quality declines."
-          : "Lower prices reduce per-unit revenue margins unless volume increases significantly.",
+        summary: `The scenario results in a net profit ${isProfitUp ? 'increase' : 'decrease'} of ₦${Math.abs(profitChange).toLocaleString()} (${isProfitUp ? '+' : ''}${profitChangePct.toFixed(1)}%).`,
+        what_happened: `Net monthly profit shifts from ₦${baselineProfit.toLocaleString()} to ₦${scenarioProfit.toLocaleString()} under "${scenarioTitle}".`,
+        why_it_happened: expenseChange > 0 
+          ? `Operating expenses increased by ₦${expenseChange.toLocaleString()} (to ₦${scenarioExpenses.toLocaleString()}), impacting net profitability.`
+          : activePriceChange !== 0 
+            ? `A ${activePriceChange}% price adjustment changed average order value to ₦${Math.round(scenarioAvgOrder).toLocaleString()}. Demand elasticity (${elasticity}) adjusted volume to ${scenarioCustomers} customers/month.`
+            : `Scenario parameter changes adjusted monthly revenue to ₦${Math.round(scenarioRevenue).toLocaleString()} and expenses to ₦${Math.round(scenarioExpenses).toLocaleString()}.`,
+        main_risks: isProfitUp 
+          ? "Ensure cost controls remain firm to lock in the profit gains."
+          : "Higher operating expenses or lower revenue per unit reduce overall profit margins.",
         practical_takeaway: isProfitUp 
-          ? "Your margin gains outpace customer volume loss, boosting overall profit."
-          : "The price change decreases net profit; consider reviewing pricing or reducing expenses."
+          ? "This scenario yields a net positive return on your bottom line."
+          : "Review variable costs or adjust pricing to offset the increased operational expenditure."
       };
 
       setAiExplanation(explanation);
@@ -102,14 +159,14 @@ export default function SimulationsPage() {
     if (selectedModelId || models.length > 0) {
       handleRunSimulation();
     }
-  }, [selectedModelId, elasticity, priceChange]);
+  }, [selectedModelId, selectedScenarioId, elasticity, priceChange]);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Financial Simulation</h1>
-          <p className="text-slate-400 text-sm">Evaluate price changes, demand elasticity, and profit impacts on your business model.</p>
+          <p className="text-slate-400 text-sm">Evaluate custom scenarios, price changes, and profit impacts on your business model.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -118,7 +175,7 @@ export default function SimulationsPage() {
               <Building2 className="w-3.5 h-3.5 text-brand-400" />
               <select
                 value={selectedModelId}
-                onChange={(e) => setSelectedModelId(e.target.value)}
+                onChange={(e) => handleModelSelect(e.target.value)}
                 className="bg-transparent text-white font-medium focus:outline-none"
               >
                 {models.map((m) => (
@@ -130,15 +187,34 @@ export default function SimulationsPage() {
             </div>
           )}
 
+          {/* Scenario Selector */}
           <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
-            <span className="text-slate-400 font-semibold">Price Change (%):</span>
-            <input
-              type="number"
-              value={priceChange}
-              onChange={(e) => setPriceChange(parseFloat(e.target.value) || 0)}
-              className="w-16 px-2 py-0.5 rounded bg-slate-950 border border-slate-700 text-white font-mono"
-            />
+            <GitFork className="w-3.5 h-3.5 text-brand-400" />
+            <select
+              value={selectedScenarioId}
+              onChange={(e) => setSelectedScenarioId(e.target.value)}
+              className="bg-transparent text-white font-medium focus:outline-none"
+            >
+              <option value="default_price" className="bg-slate-900 text-white">Price Change Slider</option>
+              {scenarios.map((s) => (
+                <option key={s.id} value={s.id} className="bg-slate-900 text-white">
+                  {s.name}
+                </option>
+              ))}
+            </select>
           </div>
+
+          {selectedScenarioId === "default_price" && (
+            <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
+              <span className="text-slate-400 font-semibold">Price Change (%):</span>
+              <input
+                type="number"
+                value={priceChange}
+                onChange={(e) => setPriceChange(parseFloat(e.target.value) || 0)}
+                className="w-16 px-2 py-0.5 rounded bg-slate-950 border border-slate-700 text-white font-mono"
+              />
+            </div>
+          )}
 
           <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
             <span className="text-slate-400 font-semibold">Demand Elasticity:</span>
