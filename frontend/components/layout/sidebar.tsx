@@ -41,23 +41,25 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between hidden md:flex min-h-screen">
-      <div className="p-4">
-        {/* Brand */}
-        <Link href="/dashboard" className="flex items-center gap-3 px-2 py-3 mb-6">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-brand-500 flex items-center justify-center font-bold text-white shadow-lg shadow-brand-500/20">
+    <aside className="w-64 bg-[#050914] border-r border-white/5 flex flex-col justify-between hidden md:flex min-h-screen sticky top-0 h-screen z-40">
+      <div className="p-5">
+        {/* Brand Header */}
+        <Link href="/dashboard" className="flex items-center gap-3 px-2 py-2 mb-6 group">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-brand-500 to-purple-600 flex items-center justify-center font-extrabold text-white text-base shadow-lg shadow-indigo-500/30 group-hover:scale-105 transition-transform">
             SX
           </div>
           <div>
-            <h1 className="font-bold text-lg leading-tight tracking-tight text-white">ScenarioX</h1>
-            <p className="text-xs text-slate-400">Simulate. Understand.</p>
+            <h1 className="font-extrabold text-lg leading-tight tracking-tight text-white group-hover:text-indigo-300 transition-colors">
+              ScenarioX
+            </h1>
+            <p className="text-[11px] text-slate-400 font-medium">Financial Intelligence</p>
           </div>
         </Link>
 
         {/* Quick AI Action */}
         <Link
           href="/dashboard/models/create-ai"
-          className="flex items-center justify-center gap-2 w-full py-2.5 px-4 mb-6 rounded-lg bg-gradient-to-r from-brand-600 to-blue-600 hover:from-brand-500 hover:to-blue-500 text-white font-medium text-sm transition shadow-md shadow-brand-600/20"
+          className="flex items-center justify-center gap-2 w-full py-2.5 px-4 mb-6 rounded-xl bg-gradient-to-r from-indigo-600 via-brand-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs transition-all shadow-md shadow-indigo-500/20 hover:shadow-indigo-500/35"
         >
           <Sparkles className="w-4 h-4" />
           <span>AI Model Assistant</span>
@@ -72,13 +74,13 @@ export function Sidebar() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
                   isActive
-                    ? "bg-brand-500/10 text-brand-500 border-l-2 border-brand-500 pl-2.5"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                    ? "bg-indigo-600/15 text-indigo-400 border border-indigo-500/30 shadow-sm"
+                    : "text-slate-400 hover:text-slate-100 hover:bg-slate-900/60"
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? "text-brand-500" : "text-slate-400"}`} />
+                <Icon className={`w-4 h-4 ${isActive ? "text-indigo-400" : "text-slate-400"}`} />
                 <span>{item.name}</span>
               </Link>
             );
@@ -86,19 +88,18 @@ export function Sidebar() {
         </nav>
       </div>
 
-      {/* Footer Banner */}
-      <div className="p-4 border-t border-slate-800/80 space-y-3">
+      {/* Footer Actions */}
+      <div className="p-5 border-t border-white/5 space-y-3">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-slate-950 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/30 text-slate-400 hover:text-rose-400 text-xs font-semibold transition"
+          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-900/80 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/30 text-slate-400 hover:text-rose-400 text-xs font-semibold transition"
         >
           <LogOut className="w-3.5 h-3.5" />
           <span>Sign Out</span>
         </button>
 
-        <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800 text-xs">
-          <p className="text-slate-300 font-semibold mb-1">Financial Intelligence</p>
-          <p className="text-slate-500 leading-relaxed">Simulate revenue, expenses, and risk with confidence.</p>
+        <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 text-[11px] text-slate-500 text-center font-mono">
+          <span>Engine v1.0 • Verified</span>
         </div>
       </div>
     </aside>

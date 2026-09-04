@@ -27,35 +27,37 @@ export function Header({ title = "Dashboard" }: { title?: string }) {
     : "IF";
 
   return (
-    <header className="h-16 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-6 flex items-center justify-between sticky top-0 z-30">
-      <div className="flex items-center gap-2 text-sm">
-        <span className="text-slate-400">ScenarioX</span>
-        <ChevronRight className="w-4 h-4 text-slate-600" />
-        <span className="font-semibold text-slate-100">{title}</span>
+    <header className="h-16 bg-[#080d1a]/80 backdrop-blur-xl border-b border-white/5 px-8 flex items-center justify-between sticky top-0 z-30 shadow-xl">
+      <div className="flex items-center gap-2.5 text-xs">
+        <span className="text-slate-400 font-medium">ScenarioX</span>
+        <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+        <span className="font-bold text-white tracking-wide">{title}</span>
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
-          <ShieldCheck className="w-3.5 h-3.5" />
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
           <span>Secure Session Active</span>
         </div>
 
-        <button className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+        <button className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800/80 transition">
           <Bell className="w-4 h-4" />
         </button>
 
-        <div className="flex items-center gap-3 pl-2 border-l border-slate-800">
-          <div className="w-8 h-8 rounded-full bg-brand-600/30 border border-brand-500/40 flex items-center justify-center text-brand-400 font-bold text-xs">
-            {initials}
+        <div className="flex items-center gap-3 pl-3 border-l border-slate-800">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 p-[1px] shadow-md shadow-indigo-500/20">
+            <div className="w-full h-full bg-slate-950 rounded-[11px] flex items-center justify-center text-indigo-300 font-bold text-xs font-mono">
+              {initials}
+            </div>
           </div>
           <div className="hidden md:block text-xs">
-            <p className="font-medium text-slate-200">Authenticated User</p>
-            <p className="text-slate-400 font-mono">{userEmail}</p>
+            <p className="font-semibold text-slate-200 leading-tight">Authenticated User</p>
+            <p className="text-[11px] text-slate-400 font-mono">{userEmail}</p>
           </div>
           <button
             onClick={handleLogout}
             title="Log Out"
-            className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition ml-1"
+            className="p-1.5 rounded-xl bg-slate-800/60 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition ml-1"
           >
             <LogOut className="w-4 h-4" />
           </button>
