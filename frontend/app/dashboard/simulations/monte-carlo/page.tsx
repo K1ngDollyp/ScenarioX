@@ -116,21 +116,21 @@ export default function MonteCarloPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Monte Carlo Risk Analysis</h1>
-          <p className="text-slate-400 text-sm">Statistical probability modeling across uncertain business variables.</p>
+          <h1 className="text-2xl font-serif font-bold text-[#1c1917]">Monte Carlo Risk Analysis</h1>
+          <p className="text-[#57534e] text-sm">Statistical probability modeling across uncertain business variables.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           {models.length > 0 && (
-            <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
-              <Building2 className="w-3.5 h-3.5 text-brand-400" />
+            <div className="flex items-center gap-2 bg-[#ffffff] px-3 py-2 rounded-xl border border-[#e7e0d3] text-xs">
+              <Building2 className="w-3.5 h-3.5 text-[#c85a32]" />
               <select
                 value={selectedModelId}
                 onChange={(e) => setSelectedModelId(e.target.value)}
-                className="bg-transparent text-white font-medium focus:outline-none"
+                className="bg-transparent text-[#1c1917] font-medium focus:outline-none"
               >
                 {models.map((m) => (
-                  <option key={m.id} value={m.id} className="bg-slate-900 text-white">
+                  <option key={m.id} value={m.id} className="bg-[#ffffff] text-[#1c1917]">
                     {m.name}
                   </option>
                 ))}
@@ -138,30 +138,30 @@ export default function MonteCarloPage() {
             </div>
           )}
 
-          <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
-            <span className="text-slate-400 font-semibold">Iterations:</span>
+          <div className="flex items-center gap-2 bg-[#ffffff] px-3 py-2 rounded-xl border border-[#e7e0d3] text-xs">
+            <span className="text-[#57534e] font-semibold">Iterations:</span>
             <input
               type="number"
               value={iterations}
               onChange={(e) => setIterations(parseInt(e.target.value) || 1000)}
-              className="w-20 px-2 py-0.5 rounded bg-slate-950 border border-slate-700 text-white font-mono"
+              className="w-20 px-2 py-0.5 rounded-lg bg-[#faf8f5] border border-[#e7e0d3] text-[#1c1917] font-mono"
             />
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
-            <span className="text-slate-400 font-semibold">Seed:</span>
+          <div className="flex items-center gap-2 bg-[#ffffff] px-3 py-2 rounded-xl border border-[#e7e0d3] text-xs">
+            <span className="text-[#57534e] font-semibold">Seed:</span>
             <input
               type="number"
               value={seed}
               onChange={(e) => setSeed(parseInt(e.target.value) || 42)}
-              className="w-16 px-2 py-0.5 rounded bg-slate-950 border border-slate-700 text-white font-mono"
+              className="w-16 px-2 py-0.5 rounded-lg bg-[#faf8f5] border border-[#e7e0d3] text-[#1c1917] font-mono"
             />
           </div>
 
           <button
             onClick={runMonteCarlo}
             disabled={loading}
-            className="py-2.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs transition flex items-center gap-2 shadow-md"
+            className="py-2.5 px-4 rounded-xl bg-[#c85a32] hover:bg-[#b04a25] text-white font-semibold text-xs transition flex items-center gap-2 shadow-sm"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             <span>Simulate Risk</span>

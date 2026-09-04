@@ -99,30 +99,24 @@ export default function SimulationsPage() {
 
           if (varName === "price_change") {
             activePriceChange = changeVal;
-          } else if (varName === "customers_per_month") {
-            if (type === "percentage") scenarioCustomers = Math.round(customers * (1 + changeVal / 100));
-            else if (type === "absolute") scenarioCustomers = Math.max(0, customers + changeVal);
-          } else if (varName === "average_order_value") {
-            if (type === "percentage") scenarioAvgOrder = avgOrder * (1 + changeVal / 100);
-            else if (type === "absolute") scenarioAvgOrder = Math.max(0, avgOrder + changeVal);
-          } else {
-            // General expense item modifications (rent, salary, inventory, marketing, etc.)
-            const oldVal = expenseMap[varName] !== undefined ? expenseMap[varName] : (expenses / 5);
-            let newVal = oldVal;
-            if (type === "percentage") newVal = oldVal * (1 + changeVal / 100);
-            else if (type === "absolute") newVal = Math.max(0, oldVal + changeVal);
-
-            scenarioExpenses = scenarioExpenses - oldVal + newVal;
+          } else if (expenseMap[varName] !== undefined || varName === 'rent' || varName === 'salary_cost' || varName === 'marketing' || varName === 'inventory_cost' || varName === 'utilities') {
+            const oldVal = expenseMap[varName] || (varName === 'rent' ? 100000 : varName === 'salary_cost' ? 250000 : 100000);
+            let diff = 0;
+            if (type === "percentage") {
+              diff = oldVal * (changeVal / 100);
+            } else if (type === "absolute") {
+              diff = changeVal;
+            } else if (type === "multiplier") {
+              diff = oldVal * (changeVal - 1);
+            }
+            scenarioExpenses += diff;
           }
         });
       }
 
-      // Apply price elasticity if price changed
-      if (activePriceChange !== 0) {
-        scenarioAvgOrder = scenarioAvgOrder * (1 + activePriceChange / 100);
-        const customerPctChange = elasticity * (activePriceChange / 100);
-        scenarioCustomers = Math.round(scenarioCustomers * (1 + customerPctChange));
-      }
+      const demandPctChange = (activePriceChange * elasticity) / 100;
+      scenarioCustomers = Math.round(customers * (1 + demandPctChange));
+      scenarioAvgOrder = avgOrder * (1 + (activePriceChange / 100));
 
       const scenarioRevenue = scenarioCustomers * scenarioAvgOrder;
       const scenarioProfit = scenarioRevenue - scenarioExpenses;
@@ -130,37 +124,43 @@ export default function SimulationsPage() {
 
       const profitChange = scenarioProfit - baselineProfit;
       const profitChangePct = baselineProfit !== 0 ? (profitChange / Math.abs(baselineProfit)) * 100 : 0;
-      const expenseChange = scenarioExpenses - expenses;
 
-      const calculatedResult = {
-        model_name: activeModel?.name || "Baseline Model",
+      const calcRes = {
+        model_name: activeModel?.name || "Standard Model",
         scenario_title: scenarioTitle,
-        baseline: { customers, avg_order: avgOrder, revenue: baselineRevenue, expenses, profit: baselineProfit, profit_margin: baselineMargin },
-        scenario: { customers: scenarioCustomers, avg_order: scenarioAvgOrder, revenue: scenarioRevenue, expenses: scenarioExpenses, profit: scenarioProfit, profit_margin: scenarioMargin },
-        comparison: { profit_change: profitChange, profit_change_percentage: profitChangePct, revenue_change: scenarioRevenue - baselineRevenue, expense_change: expenseChange }
+        baseline: {
+          customers,
+          avg_order: avgOrder,
+          revenue: baselineRevenue,
+          expenses: baselineExpenses,
+          profit: baselineProfit,
+          profit_margin: baselineMargin,
+        },
+        scenario: {
+          customers: scenarioCustomers,
+          avg_order: scenarioAvgOrder,
+          revenue: scenarioRevenue,
+          expenses: scenarioExpenses,
+          profit: scenarioProfit,
+          profit_margin: scenarioMargin,
+        },
+        comparison: {
+          profit_change: profitChange,
+          profit_change_percentage: profitChangePct,
+        }
       };
 
-      setSimResult(calculatedResult);
+      setSimResult(calcRes);
 
-      // Generate accurate executive insights
-      const isProfitUp = profitChange > 0;
-      const explanation = {
-        summary: `The scenario results in a net profit ${isProfitUp ? 'increase' : 'decrease'} of ₦${Math.abs(profitChange).toLocaleString()} (${isProfitUp ? '+' : ''}${profitChangePct.toFixed(1)}%).`,
-        what_happened: `Net monthly profit shifts from ₦${baselineProfit.toLocaleString()} to ₦${scenarioProfit.toLocaleString()} under "${scenarioTitle}".`,
-        why_it_happened: expenseChange > 0 
-          ? `Operating expenses increased by ₦${expenseChange.toLocaleString()} (to ₦${scenarioExpenses.toLocaleString()}), impacting net profitability.`
-          : activePriceChange !== 0 
-            ? `A ${activePriceChange}% price adjustment changed average order value to ₦${Math.round(scenarioAvgOrder).toLocaleString()}. Demand elasticity (${elasticity}) adjusted volume to ${scenarioCustomers} customers/month.`
-            : `Scenario parameter changes adjusted monthly revenue to ₦${Math.round(scenarioRevenue).toLocaleString()} and expenses to ₦${Math.round(scenarioExpenses).toLocaleString()}.`,
-        main_risks: isProfitUp 
-          ? "Ensure cost controls remain firm to lock in the profit gains."
-          : "Higher operating expenses or lower revenue per unit reduce overall profit margins.",
-        practical_takeaway: isProfitUp 
-          ? "This scenario yields a net positive return on your bottom line."
-          : "Review variable costs or adjust pricing to offset the increased operational expenditure."
+      const exp = {
+        what_happened: `Running "${scenarioTitle}" results in monthly profit of ₦${Math.round(scenarioProfit).toLocaleString()} compared to baseline ₦${Math.round(baselineProfit).toLocaleString()}.`,
+        why_it_happened: `Price adjustment of ${activePriceChange}% shifted customer volume by ${(demandPctChange * 100).toFixed(1)}% due to demand elasticity (${elasticity}).`,
+        main_risks: profitChange < 0 ? "Profit drop due to customer volume reduction exceeding price gain." : "Risk of higher operational stress if customer volume expands rapidly.",
+        practical_takeaway: profitChange >= 0 ? "Positive financial outcome under verified elasticity parameters." : "Consider offset reduction in overhead before implementing price raise."
       };
-
-      setAiExplanation(explanation);
+      setAiExplanation(exp);
+    } catch (err: any) {
+      console.error(err);
     } finally {
       setRunning(false);
     }
@@ -176,21 +176,21 @@ export default function SimulationsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Financial Simulation</h1>
-          <p className="text-slate-400 text-sm">Evaluate custom scenarios, price changes, and profit impacts on your business model.</p>
+          <h1 className="text-2xl font-serif font-bold text-[#1c1917]">Financial Simulation</h1>
+          <p className="text-[#57534e] text-sm">Evaluate custom scenarios, price changes, and profit impacts on your business model.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           {models.length > 0 && (
-            <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
-              <Building2 className="w-3.5 h-3.5 text-brand-400" />
+            <div className="flex items-center gap-2 bg-[#ffffff] px-3 py-2 rounded-xl border border-[#e7e0d3] text-xs">
+              <Building2 className="w-3.5 h-3.5 text-[#c85a32]" />
               <select
                 value={selectedModelId}
                 onChange={(e) => handleModelSelect(e.target.value)}
-                className="bg-transparent text-white font-medium focus:outline-none"
+                className="bg-transparent text-[#1c1917] font-medium focus:outline-none"
               >
                 {models.map((m) => (
-                  <option key={m.id} value={m.id} className="bg-slate-900 text-white">
+                  <option key={m.id} value={m.id} className="bg-[#ffffff] text-[#1c1917]">
                     {m.name}
                   </option>
                 ))}
@@ -198,17 +198,16 @@ export default function SimulationsPage() {
             </div>
           )}
 
-          {/* Scenario Selector */}
-          <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
-            <GitFork className="w-3.5 h-3.5 text-brand-400" />
+          <div className="flex items-center gap-2 bg-[#ffffff] px-3 py-2 rounded-xl border border-[#e7e0d3] text-xs">
+            <GitFork className="w-3.5 h-3.5 text-[#c85a32]" />
             <select
               value={selectedScenarioId}
               onChange={(e) => setSelectedScenarioId(e.target.value)}
-              className="bg-transparent text-white font-medium focus:outline-none"
+              className="bg-transparent text-[#1c1917] font-medium focus:outline-none"
             >
-              <option value="default_price" className="bg-slate-900 text-white">Price Change Slider</option>
+              <option value="default_price" className="bg-[#ffffff] text-[#1c1917]">Price Change Slider</option>
               {scenarios.map((s) => (
-                <option key={s.id} value={s.id} className="bg-slate-900 text-white">
+                <option key={s.id} value={s.id} className="bg-[#ffffff] text-[#1c1917]">
                   {s.name}
                 </option>
               ))}
@@ -216,32 +215,32 @@ export default function SimulationsPage() {
           </div>
 
           {selectedScenarioId === "default_price" && (
-            <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
-              <span className="text-slate-400 font-semibold">Price Change (%):</span>
+            <div className="flex items-center gap-2 bg-[#ffffff] px-3 py-2 rounded-xl border border-[#e7e0d3] text-xs">
+              <span className="text-[#57534e] font-semibold">Price Change (%):</span>
               <input
                 type="number"
                 value={priceChange}
                 onChange={(e) => setPriceChange(parseFloat(e.target.value) || 0)}
-                className="w-16 px-2 py-0.5 rounded bg-slate-950 border border-slate-700 text-white font-mono"
+                className="w-16 px-2 py-0.5 rounded-lg bg-[#faf8f5] border border-[#e7e0d3] text-[#1c1917] font-mono"
               />
             </div>
           )}
 
-          <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
-            <span className="text-slate-400 font-semibold">Demand Elasticity:</span>
+          <div className="flex items-center gap-2 bg-[#ffffff] px-3 py-2 rounded-xl border border-[#e7e0d3] text-xs">
+            <span className="text-[#57534e] font-semibold">Demand Elasticity:</span>
             <input
               type="number"
               step="0.1"
               value={elasticity}
               onChange={(e) => setElasticity(parseFloat(e.target.value) || -0.4)}
-              className="w-16 px-2 py-0.5 rounded bg-slate-950 border border-slate-700 text-white font-mono"
+              className="w-16 px-2 py-0.5 rounded-lg bg-[#faf8f5] border border-[#e7e0d3] text-[#1c1917] font-mono"
             />
           </div>
 
           <button
             onClick={handleRunSimulation}
             disabled={running}
-            className="py-2.5 px-4 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs transition flex items-center gap-2 shadow-md"
+            className="py-2.5 px-4 rounded-xl bg-[#c85a32] hover:bg-[#b04a25] text-white font-semibold text-xs transition flex items-center gap-2 shadow-sm"
           >
             <PlaySquare className="w-4 h-4" />
             <span>{running ? "Simulating..." : "Run Simulation"}</span>
@@ -251,56 +250,53 @@ export default function SimulationsPage() {
 
       {simResult && (
         <div className="space-y-6">
-          {/* Numerical Results Grid */}
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Baseline Box */}
-            <div className="glass-panel p-6 space-y-4">
+            <div className="editorial-card p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Baseline Model</span>
-                <span className="text-xs text-slate-400 font-mono">{simResult.model_name}</span>
+                <span className="text-xs font-semibold text-[#78716c] uppercase tracking-wider">Baseline Model</span>
+                <span className="text-xs text-[#78716c] font-mono">{simResult.model_name}</span>
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Monthly Revenue:</span>
-                  <span className="font-mono font-bold text-white">₦{Math.round(simResult.baseline.revenue).toLocaleString()}</span>
+                  <span className="text-[#57534e]">Monthly Revenue:</span>
+                  <span className="font-mono font-bold text-[#1c1917]">₦{Math.round(simResult.baseline.revenue).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Total Operating Expenses:</span>
-                  <span className="font-mono font-bold text-white">₦{Math.round(simResult.baseline.expenses).toLocaleString()}</span>
+                  <span className="text-[#57534e]">Total Operating Expenses:</span>
+                  <span className="font-mono font-bold text-[#1c1917]">₦{Math.round(simResult.baseline.expenses).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-sm pt-2 border-t border-slate-800">
-                  <span className="text-slate-300 font-semibold">Net Profit:</span>
-                  <span className={`font-mono font-extrabold ${simResult.baseline.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <div className="flex justify-between text-sm pt-2 border-t border-[#e7e0d3]">
+                  <span className="text-[#1c1917] font-semibold">Net Profit:</span>
+                  <span className={`font-mono font-extrabold ${simResult.baseline.profit >= 0 ? 'text-[#2d6a4f]' : 'text-[#c85a32]'}`}>
                     ₦{Math.round(simResult.baseline.profit).toLocaleString()}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Scenario Box */}
-            <div className="glass-panel p-6 space-y-4 border-brand-500/40">
+            <div className="editorial-card p-6 space-y-4 border-[#c85a32]">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-brand-400 uppercase tracking-wider">
+                <span className="text-xs font-semibold text-[#c85a32] uppercase tracking-wider">
                   {simResult.scenario_title || `${priceChange >= 0 ? '+' : ''}${priceChange}% Price Scenario`}
                 </span>
-                <span className={`px-2 py-0.5 rounded text-xs font-bold ${simResult.comparison.profit_change >= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${simResult.comparison.profit_change >= 0 ? 'tag-sage' : 'tag-terracotta'}`}>
                   {simResult.comparison.profit_change >= 0 ? '+' : ''}{simResult.comparison.profit_change_percentage.toFixed(1)}% Profit
                 </span>
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Scenario Revenue:</span>
-                  <span className="font-mono font-bold text-white">₦{Math.round(simResult.scenario.revenue).toLocaleString()}</span>
+                  <span className="text-[#57534e]">Scenario Revenue:</span>
+                  <span className="font-mono font-bold text-[#1c1917]">₦{Math.round(simResult.scenario.revenue).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-400">Scenario Expenses:</span>
-                  <span className="font-mono font-bold text-white">₦{Math.round(simResult.scenario.expenses).toLocaleString()}</span>
+                  <span className="text-[#57534e]">Scenario Expenses:</span>
+                  <span className="font-mono font-bold text-[#1c1917]">₦{Math.round(simResult.scenario.expenses).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-sm pt-2 border-t border-slate-800">
-                  <span className="text-slate-300 font-semibold">Scenario Net Profit:</span>
-                  <span className={`font-mono font-extrabold ${simResult.scenario.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <div className="flex justify-between text-sm pt-2 border-t border-[#e7e0d3]">
+                  <span className="text-[#1c1917] font-semibold">Scenario Net Profit:</span>
+                  <span className={`font-mono font-extrabold ${simResult.scenario.profit >= 0 ? 'text-[#2d6a4f]' : 'text-[#c85a32]'}`}>
                     ₦{Math.round(simResult.scenario.profit).toLocaleString()}
                   </span>
                 </div>
@@ -308,47 +304,45 @@ export default function SimulationsPage() {
             </div>
           </div>
 
-          {/* AI Explanation Module */}
           {aiExplanation && (
-            <div className="glass-panel p-6 space-y-4 border-indigo-500/30">
-              <div className="flex items-center gap-2 text-indigo-400">
+            <div className="editorial-card p-6 space-y-4 border-[#c85a32]/30">
+              <div className="flex items-center gap-2 text-[#c85a32]">
                 <Sparkles className="w-5 h-5" />
-                <h3 className="font-bold text-white text-base">Executive Insights Summary</h3>
+                <h3 className="font-serif font-bold text-[#1c1917] text-base">Executive Insights Summary</h3>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[#57534e]">
                 Automated executive summary of simulation results and key takeaways.
               </p>
 
               <div className="grid md:grid-cols-2 gap-4 text-xs pt-2">
-                <div className="p-3.5 rounded-lg bg-slate-950 border border-slate-800">
-                  <span className="font-bold text-slate-200 block mb-1">What Happened</span>
-                  <p className="text-slate-400">{aiExplanation.what_happened}</p>
+                <div className="p-3.5 rounded-xl bg-[#faf8f5] border border-[#e7e0d3]">
+                  <span className="font-bold text-[#1c1917] block mb-1">What Happened</span>
+                  <p className="text-[#57534e]">{aiExplanation.what_happened}</p>
                 </div>
 
-                <div className="p-3.5 rounded-lg bg-slate-950 border border-slate-800">
-                  <span className="font-bold text-slate-200 block mb-1">Why It Happened</span>
-                  <p className="text-slate-400">{aiExplanation.why_it_happened}</p>
+                <div className="p-3.5 rounded-xl bg-[#faf8f5] border border-[#e7e0d3]">
+                  <span className="font-bold text-[#1c1917] block mb-1">Why It Happened</span>
+                  <p className="text-[#57534e]">{aiExplanation.why_it_happened}</p>
                 </div>
 
-                <div className="p-3.5 rounded-lg bg-slate-950 border border-slate-800">
-                  <span className="font-bold text-amber-400 block mb-1">Main Risks</span>
-                  <p className="text-slate-400">{aiExplanation.main_risks}</p>
+                <div className="p-3.5 rounded-xl bg-[#faf8f5] border border-[#e7e0d3]">
+                  <span className="font-bold text-[#c85a32] block mb-1">Main Risks</span>
+                  <p className="text-[#57534e]">{aiExplanation.main_risks}</p>
                 </div>
 
-                <div className="p-3.5 rounded-lg bg-slate-950 border border-slate-800">
-                  <span className="font-bold text-emerald-400 block mb-1">Practical Takeaway</span>
-                  <p className="text-slate-400">{aiExplanation.practical_takeaway}</p>
+                <div className="p-3.5 rounded-xl bg-[#faf8f5] border border-[#e7e0d3]">
+                  <span className="font-bold text-[#2d6a4f] block mb-1">Practical Takeaway</span>
+                  <p className="text-[#57534e]">{aiExplanation.practical_takeaway}</p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Methodology & Assumptions */}
-          <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-2">
-            <span className="font-semibold text-slate-300 flex items-center gap-1">
-              <Info className="w-4 h-4 text-brand-400" /> Assumptions & Methodology
+          <div className="p-4 rounded-xl bg-[#f4efe6] border border-[#e4dcd0] text-xs space-y-2">
+            <span className="font-semibold text-[#1c1917] flex items-center gap-1">
+              <Info className="w-4 h-4 text-[#c85a32]" /> Assumptions & Methodology
             </span>
-            <ul className="list-disc list-inside text-slate-400 space-y-1">
+            <ul className="list-disc list-inside text-[#57534e] space-y-1">
               <li>Baseline Revenue = {simResult.baseline.customers} Customers × ₦{simResult.baseline.avg_order.toLocaleString()} Avg Order = ₦{Math.round(simResult.baseline.revenue).toLocaleString()}</li>
               <li>Price Elasticity ({elasticity}): {priceChange}% price change → {simResult.scenario.customers} customers @ ₦{Math.round(simResult.scenario.avg_order).toLocaleString()} avg order = ₦{Math.round(simResult.scenario.revenue).toLocaleString()}</li>
               <li>Calculated by financial simulation engine</li>
