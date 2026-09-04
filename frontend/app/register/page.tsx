@@ -26,20 +26,13 @@ export default function RegisterPage() {
     }
 
     try {
-      // 1. Register user in authentication engine
+      // 1. Register user strictly in Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
 
       if (error) {
-        // If free tier email rate limit is triggered, bypass smoothly into dashboard
-        if (error.message.toLowerCase().includes("rate limit") || error.message.toLowerCase().includes("exceeded")) {
-          localStorage.setItem("scenariox_user_email", email);
-          localStorage.setItem("scenariox_auth_token", "auth-session-active");
-          router.push("/dashboard");
-          return;
-        }
         setErrorMsg(error.message);
         setLoading(false);
         return;
@@ -55,19 +48,18 @@ export default function RegisterPage() {
         } catch {
           // Ignore if trigger handles it
         }
-      }
 
-      // 3. Log straight into dashboard
-      const token = data?.session?.access_token || "auth-session-active";
-      localStorage.setItem("scenariox_user_email", email);
-      localStorage.setItem("scenariox_auth_token", token);
-      
-      router.push("/dashboard");
+        // 3. Log straight into dashboard
+        const token = data?.session?.access_token || "auth-session-active";
+        localStorage.setItem("scenariox_user_email", email);
+        localStorage.setItem("scenariox_auth_token", token);
+        
+        router.push("/dashboard");
+      } else {
+        setErrorMsg("Unable to create user account. Please try again.");
+      }
     } catch (err: any) {
-      // Smooth fallback login
-      localStorage.setItem("scenariox_user_email", email);
-      localStorage.setItem("scenariox_auth_token", "auth-session-active");
-      router.push("/dashboard");
+      setErrorMsg(err.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
