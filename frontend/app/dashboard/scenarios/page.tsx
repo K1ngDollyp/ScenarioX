@@ -39,12 +39,12 @@ export default function ScenarioBuilderPage() {
     setSaving(true);
     try {
       const targetModelId = selectedModelId || (models[0] ? models[0].id : "seed-restaurant-001");
-      await api.createScenario(targetModelId, {
+      const created = await api.createScenario(targetModelId, {
         name,
         description,
         changes
       });
-      router.push("/dashboard/simulations");
+      router.push(`/dashboard/simulations?scenario_id=${created.id}`);
     } catch (err: any) {
       alert(err.message || "Failed to create scenario");
     } finally {

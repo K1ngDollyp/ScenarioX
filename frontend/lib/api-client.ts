@@ -198,7 +198,30 @@ export const api = {
   },
 
   // Scenarios
-  getScenarios: (modelId: string) => fetchAPI<any[]>(`/models/${modelId}/scenarios`).catch(() => []),
+  getScenarios: async (modelId: string) => {
+    try {
+      return await fetchAPI<any[]>(`/models/${modelId}/scenarios`);
+    } catch {
+      try {
+        const { data: dbScenarios } = await supabase.from('scenarios').select('*, scenario_changes(*)').eq('model_id', modelId);
+        if (dbScenarios && dbScenarios.length > 0) {
+          return dbScenarios.map(s => ({
+            ...s,
+            changes: s.scenario_changes || []
+          }));
+        }
+      } catch {}
+
+      if (typeof window === 'undefined') return [];
+      try {
+        const email = localStorage.getItem('scenariox_user_email') || 'default';
+        const data = localStorage.getItem(`scenariox_user_scenarios_${email}_${modelId}`);
+        return data ? JSON.parse(data) : [];
+      } catch {
+        return [];
+      }
+    }
+  },
   getScenario: (id: string) => fetchAPI<any>(`/scenarios/${id}`).catch(() => ({ id, name: "Price +10%", changes: [{ variable_name: "price_change", change_type: "percentage", change_value: 10 }] })),
   createScenario: async (modelId: string, data: any) => {
     const newScenario = { id: `scen-${Date.now()}`, model_id: modelId, ...data, created_at: new Date().toISOString() };
@@ -224,6 +247,15 @@ export const api = {
         }
       } catch (e) {
         console.warn('[Supabase DB Scenario Sync Notice]', e);
+      }
+
+      if (typeof window !== 'undefined') {
+        try {
+          const email = localStorage.getItem('scenariox_user_email') || 'default';
+          const key = `scenariox_user_scenarios_${email}_${modelId}`;
+          const existing = JSON.parse(localStorage.getItem(key) || '[]');
+          localStorage.setItem(key, JSON.stringify([newScenario, ...existing]));
+        } catch {}
       }
 
       return newScenario;
