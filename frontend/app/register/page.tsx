@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, AlertCircle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase-client";
 
 export default function RegisterPage() {
@@ -13,32 +13,46 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg("");
+    setSuccessMsg("");
+
+    if (password.length < 6) {
+      setErrorMsg("Password must be at least 6 characters long.");
+      setLoading(false);
+      return;
+    }
 
     try {
-      // Attempt Supabase Auth Sign Up
+      // Execute strict Supabase Auth Registration
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
 
       if (error) {
-        console.warn("[Supabase Auth] Notice:", error.message);
+        setErrorMsg(error.message);
+        setLoading(false);
+        return;
       }
 
-      // Store local session identity
-      localStorage.setItem("scenariox_user_email", email);
-      localStorage.setItem("scenariox_auth_token", data?.session?.access_token || "dev-token-00000000-0000-0000-0000-000000000001");
-      
-      router.push("/dashboard");
+      if (data?.user) {
+        if (data?.session) {
+          localStorage.setItem("scenariox_user_email", email);
+          localStorage.setItem("scenariox_auth_token", data.session.access_token);
+          router.push("/dashboard");
+        } else {
+          setSuccessMsg("Account created in Supabase! Please check your email to confirm registration or log in.");
+        }
+      } else {
+        setErrorMsg("Supabase Auth did not return a valid user session. Please try again.");
+      }
     } catch (err: any) {
-      localStorage.setItem("scenariox_user_email", email);
-      localStorage.setItem("scenariox_auth_token", "dev-token-00000000-0000-0000-0000-000000000001");
-      router.push("/dashboard");
+      setErrorMsg(err.message || "Registration failed. Please check network connection.");
     } finally {
       setLoading(false);
     }
@@ -58,8 +72,16 @@ export default function RegisterPage() {
         </div>
 
         {errorMsg && (
-          <div className="p-3 mb-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
-            {errorMsg}
+          <div className="p-3.5 mb-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {successMsg && (
+          <div className="p-3.5 mb-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{successMsg}</span>
           </div>
         )}
 
@@ -83,6 +105,7 @@ export default function RegisterPage() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 6 characters"
                 className="w-full px-3.5 py-2.5 pr-10 rounded-lg bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-brand-500"
                 required
               />
@@ -101,7 +124,7 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full py-3 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition shadow-md shadow-brand-600/30 flex items-center justify-center gap-2"
           >
-            <span>{loading ? "Registering..." : "Register & Start Simulating"}</span>
+            <span>{loading ? "Creating Supabase Account..." : "Register Account"}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase-client";
 
 export default function LoginPage() {
@@ -20,24 +20,27 @@ export default function LoginPage() {
     setErrorMsg("");
 
     try {
-      // Attempt Supabase Auth Sign In
+      // Execute strict Supabase Auth Sign In
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        console.warn("[Supabase Auth] Notice:", error.message);
+        setErrorMsg(error.message);
+        setLoading(false);
+        return;
       }
 
-      localStorage.setItem("scenariox_user_email", email);
-      localStorage.setItem("scenariox_auth_token", data?.session?.access_token || "dev-token-00000000-0000-0000-0000-000000000001");
-      
-      router.push("/dashboard");
+      if (data?.session) {
+        localStorage.setItem("scenariox_user_email", email);
+        localStorage.setItem("scenariox_auth_token", data.session.access_token);
+        router.push("/dashboard");
+      } else {
+        setErrorMsg("Sign in failed. Could not establish Supabase session.");
+      }
     } catch (err: any) {
-      localStorage.setItem("scenariox_user_email", email);
-      localStorage.setItem("scenariox_auth_token", "dev-token-00000000-0000-0000-0000-000000000001");
-      router.push("/dashboard");
+      setErrorMsg(err.message || "Invalid credentials or network connection.");
     } finally {
       setLoading(false);
     }
@@ -57,8 +60,9 @@ export default function LoginPage() {
         </div>
 
         {errorMsg && (
-          <div className="p-3 mb-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
-            {errorMsg}
+          <div className="p-3.5 mb-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{errorMsg}</span>
           </div>
         )}
 
@@ -100,7 +104,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-3 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm transition shadow-md shadow-brand-600/30 flex items-center justify-center gap-2"
           >
-            <span>{loading ? "Signing In..." : "Sign In to Dashboard"}</span>
+            <span>{loading ? "Authenticating..." : "Sign In to Dashboard"}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
