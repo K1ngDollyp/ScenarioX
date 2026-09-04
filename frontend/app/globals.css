@@ -6,7 +6,7 @@
 
 @layer base {
   body {
-    @apply bg-[#080d1a] text-slate-100 antialiased font-sans min-h-screen selection:bg-brand-500/30 selection:text-brand-300;
+    @apply bg-[#080d1a] text-slate-100 antialiased font-sans min-h-screen;
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   }
 
