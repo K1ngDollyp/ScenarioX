@@ -2,35 +2,111 @@
 
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api-client";
-import { BarChart3, RefreshCw } from "lucide-react";
+import { BarChart3, RefreshCw, Building2 } from "lucide-react";
 
 export default function SensitivityPage() {
+  const [models, setModels] = useState<any[]>([]);
+  const [selectedModelId, setSelectedModelId] = useState<string>("");
   const [perturbation, setPerturbation] = useState(10);
   const [loading, setLoading] = useState(false);
   const [sensitivityList, setSensitivityList] = useState<any[]>([]);
 
+  useEffect(() => {
+    async function loadModels() {
+      const activeModels = await api.getModels();
+      setModels(activeModels);
+      if (activeModels.length > 0) {
+        setSelectedModelId(activeModels[0].id);
+      }
+    }
+    loadModels();
+  }, []);
+
+  const activeModel = models.find(m => m.id === selectedModelId) || models[0];
+
   const runSensitivity = async () => {
     setLoading(true);
     try {
-      const res = await api.runSensitivity("seed-restaurant-001", { perturbation_pct: perturbation });
-      setSensitivityList(res);
-    } catch (err: any) {
-      // Mock fallback
-      setSensitivityList([
-        { rank: 1, variable_name: "customers_per_month", display_name: "Customers per Month", baseline_value: 600, profit_at_plus_10: 584000, profit_at_minus_10: 416000, profit_swing: 168000, percentage_impact: 33.6 },
-        { rank: 2, variable_name: "average_order_value", display_name: "Average Order Value", baseline_value: 2500, profit_at_plus_10: 584000, profit_at_minus_10: 416000, profit_swing: 168000, percentage_impact: 33.6 },
-        { rank: 3, variable_name: "inventory_cost", display_name: "Inventory Cost", baseline_value: 500000, profit_at_plus_10: 450000, profit_at_minus_10: 550000, profit_swing: 100000, percentage_impact: 20.0 },
-        { rank: 4, variable_name: "salary_cost", display_name: "Salary Cost", baseline_value: 250000, profit_at_plus_10: 475000, profit_at_minus_10: 525000, profit_swing: 50000, percentage_impact: 10.0 },
-        { rank: 5, variable_name: "rent", display_name: "Rent", baseline_value: 100000, profit_at_plus_10: 490000, profit_at_minus_10: 510000, profit_swing: 20000, percentage_impact: 4.0 },
-      ]);
+      if (!activeModel?.variables || activeModel.variables.length === 0) return;
+
+      const vars = activeModel.variables;
+      let customers = 600;
+      let avgOrder = 2500;
+      const expenseMap: Record<string, number> = {};
+      let totalExpenses = 0;
+
+      const custVar = vars.find((v: any) => v.variable_name === 'customers_per_month');
+      const orderVar = vars.find((v: any) => v.variable_name === 'average_order_value');
+      if (custVar) customers = Number(custVar.value) || 600;
+      if (orderVar) avgOrder = Number(orderVar.value) || 2500;
+
+      vars.forEach((v: any) => {
+        if (v.category === 'expense' && v.variable_name !== 'customers_per_month' && v.variable_name !== 'average_order_value') {
+          const val = Number(v.value) || 0;
+          expenseMap[v.variable_name] = val;
+          totalExpenses += val;
+        }
+      });
+
+      if (totalExpenses === 0) totalExpenses = 1000000;
+      const baselineRevenue = customers * avgOrder;
+      const baselineProfit = baselineRevenue - totalExpenses;
+
+      const results: any[] = [];
+
+      vars.forEach((v: any) => {
+        const val = Number(v.value) || 0;
+        let profitPlus = baselineProfit;
+        let profitMinus = baselineProfit;
+
+        if (v.variable_name === 'customers_per_month') {
+          const plusVal = val * (1 + perturbation / 100);
+          const minusVal = val * (1 - perturbation / 100);
+          profitPlus = (plusVal * avgOrder) - totalExpenses;
+          profitMinus = (minusVal * avgOrder) - totalExpenses;
+        } else if (v.variable_name === 'average_order_value') {
+          const plusVal = val * (1 + perturbation / 100);
+          const minusVal = val * (1 - perturbation / 100);
+          profitPlus = (customers * plusVal) - totalExpenses;
+          profitMinus = (customers * minusVal) - totalExpenses;
+        } else if (v.category === 'expense') {
+          const delta = val * (perturbation / 100);
+          profitPlus = baselineRevenue - (totalExpenses + delta);
+          profitMinus = baselineRevenue - (totalExpenses - delta);
+        }
+
+        const swing = Math.abs(profitPlus - profitMinus);
+        results.push({
+          variable_name: v.variable_name,
+          display_name: v.display_name,
+          baseline_value: val,
+          profit_at_plus_10: Math.round(profitPlus),
+          profit_at_minus_10: Math.round(profitMinus),
+          profit_swing: Math.round(swing),
+        });
+      });
+
+      // Calculate percentage impact relative to total swing
+      const totalSwingSum = results.reduce((sum, item) => sum + item.profit_swing, 0) || 1;
+      results.forEach(r => {
+        r.percentage_impact = Number(((r.profit_swing / totalSwingSum) * 100).toFixed(1));
+      });
+
+      // Sort by impact rank descending
+      results.sort((a, b) => b.profit_swing - a.profit_swing);
+      results.forEach((r, idx) => r.rank = idx + 1);
+
+      setSensitivityList(results);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    runSensitivity();
-  }, []);
+    if (selectedModelId || models.length > 0) {
+      runSensitivity();
+    }
+  }, [selectedModelId, perturbation]);
 
   return (
     <div className="space-y-6">
@@ -40,7 +116,24 @@ export default function SensitivityPage() {
           <p className="text-slate-400 text-sm">Rank variable influence on net profit via systematic perturbation testing.</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {models.length > 0 && (
+            <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
+              <Building2 className="w-3.5 h-3.5 text-brand-400" />
+              <select
+                value={selectedModelId}
+                onChange={(e) => setSelectedModelId(e.target.value)}
+                className="bg-transparent text-white font-medium focus:outline-none"
+              >
+                {models.map((m) => (
+                  <option key={m.id} value={m.id} className="bg-slate-900 text-white">
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
             <span className="text-slate-400 font-semibold">Perturbation:</span>
             <span className="text-white font-mono">±{perturbation}%</span>
