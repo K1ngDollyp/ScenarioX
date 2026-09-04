@@ -132,7 +132,7 @@ export default function SimulationsPage() {
           customers,
           avg_order: avgOrder,
           revenue: baselineRevenue,
-          expenses: baselineExpenses,
+          expenses: expenses,
           profit: baselineProfit,
           profit_margin: baselineMargin,
         },
